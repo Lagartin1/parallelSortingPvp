@@ -4,7 +4,6 @@ SRC_DIR = src
 BIN_DIR = bin
 SRC_FILE = $(wildcard $(SRC_DIR)/*.cu)
 TARGET = $(BIN_DIR)/prog
-
 # Asegurar que los directorios existen
 $(shell mkdir -p $(BIN_DIR))
 
