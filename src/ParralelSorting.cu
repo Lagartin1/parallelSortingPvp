@@ -151,95 +151,33 @@ __global__ void distribute_kernel(int* data, int* buckets, int* bucket_sizes, in
     }
 }
 
-__global__ void local_sort_kernel(int* buckets, int* bucket_sizes, int bucket_idx, int bucket_capacity) {
-    extern __shared__ int shared_data[]; // Memoria compartida
-    int tid = threadIdx.x;
+__global__ void local_sort_kernel(int* buckets, int* bucket_sizes, int bucket_idx, int n) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    // Tamaño del bucket actual
-    int size = bucket_sizes[bucket_idx];
-    if (tid >= size) return;
+    if (tid < bucket_sizes[bucket_idx]) {
+        // Ordenamiento burbuja local (puede ser reemplazado por otro algoritmo)
+        for (int i = 0; i < bucket_sizes[bucket_idx]; i++) {
+            for (int j = i + 1; j < bucket_sizes[bucket_idx]; j++) {
+                int idx1 = bucket_idx * n + i;
+                int idx2 = bucket_idx * n + j;
 
-    // Copiar los datos del bucket a la memoria compartida
-    int* bucket_data = buckets + bucket_idx * bucket_capacity;
-    shared_data[tid] = bucket_data[tid];
-    __syncthreads();
-
-    // Variables para el stack explícito
-    int left_stack[32];
-    int right_stack[32];
-    int stack_size = 0;
-
-    // Inicializar el stack con los límites del arreglo
-    if (tid == 0) {
-        left_stack[stack_size] = 0;
-        right_stack[stack_size] = size - 1;
-        stack_size++;
+                if (buckets[idx1] > buckets[idx2]) {
+                    int temp = buckets[idx1];
+                    buckets[idx1] = buckets[idx2];
+                    buckets[idx2] = temp;
+                }
+            }
+        }
     }
-    __syncthreads();
-
-    // Procesar el stack
-    while (stack_size > 0) {
-        int left, right;
-
-        if (tid == 0) {
-            // Extraer límites del stack
-            stack_size--;
-            left = left_stack[stack_size];
-            right = right_stack[stack_size];
-        }
-        __syncthreads();
-
-        // Elegir el pivote como el elemento del medio
-        int pivot = shared_data[(left + right) / 2];
-
-        // Particionar el arreglo
-        int i = left;
-        int j = right;
-
-        while (i <= j) {
-            while (shared_data[i] < pivot) i++;
-            while (shared_data[j] > pivot) j--;
-
-            if (i <= j) {
-                // Intercambiar
-                int temp = shared_data[i];
-                shared_data[i] = shared_data[j];
-                shared_data[j] = temp;
-                i++;
-                j--;
-            }
-        }
-        __syncthreads();
-
-        // Añadir nuevos subarreglos al stack
-        if (tid == 0) {
-            if (left < j) {
-                left_stack[stack_size] = left;
-                right_stack[stack_size] = j;
-                stack_size++;
-            }
-            if (i < right) {
-                left_stack[stack_size] = i;
-                right_stack[stack_size] = right;
-                stack_size++;
-            }
-        }
-        __syncthreads();
-    }
-
-    // Copiar los datos ordenados de vuelta al bucket
-    bucket_data[tid] = shared_data[tid];
 }
 
 
+// Sample Sort en GPU
 void gpu_sample_sort(int* data, size_t n) {
     int* d_data, *d_buckets, *d_bucket_sizes, *d_pivots;
     int* pivots = new int[BUCKET_COUNT - 1];
     int bucket_capacity = n;
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    int num_sms = prop.multiProcessorCount;
-    int num_blocks = num_sms * 5;
+
     // Generar pivotes (muestreo uniforme)
     for (int i = 0; i < BUCKET_COUNT - 1; i++) {
         pivots[i] = (i + 1) * (INT_MAX / BUCKET_COUNT);
@@ -257,14 +195,13 @@ void gpu_sample_sort(int* data, size_t n) {
     cudaMemset(d_bucket_sizes, 0, BUCKET_COUNT * sizeof(int));
 
     // Paso 1: Distribuir elementos en buckets
+    int num_blocks = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
     distribute_kernel<<<num_blocks, BLOCK_SIZE>>>(d_data, d_buckets, d_bucket_sizes, n, d_pivots);
 
     // Paso 2: Ordenar localmente cada bucket
     for (int i = 0; i < BUCKET_COUNT; i++) {
-        int shared_memory_size = bucket_capacity * sizeof(int);
-        local_sort_kernel<<<1, bucket_capacity, shared_memory_size>>>(d_buckets, d_bucket_sizes, i, bucket_capacity);
-        cudaDeviceSynchronize();
-     }
+        local_sort_kernel<<<1, BLOCK_SIZE>>>(d_buckets, d_bucket_sizes, i, n);
+    }
 
     // Paso 3: Combinar buckets
     int offset = 0;
