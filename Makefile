@@ -1,5 +1,5 @@
 NVCC = nvcc
-NVCC_FLAGS = -Xcompiler -fopenmp -O3 -lineinfo
+NVCC_FLAGS = -Xcompiler -fopenmp -std=c++11 -O3
 SRC_DIR = src
 BIN_DIR = bin
 SRC_FILE = $(wildcard $(SRC_DIR)/*.cu)
