@@ -2,6 +2,21 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Leer datos de CPU en formato: n,threads,tiempo
+def read_cpu_results(file_path):
+    data = np.loadtxt(file_path, delimiter=",", dtype=float)
+    n_values = data[:, 0]
+    threads = data[:, 1]
+    times = data[:, 2]
+    return n_values, threads, times
+
+# Leer datos de GPU en formato: n,tiempo
+def read_gpu_results(file_path):
+    data = np.loadtxt(file_path, delimiter=",", dtype=float)
+    n_values = data[:, 0]
+    times = data[:, 1]
+    return n_values, times
+
 # Funciones auxiliares para calcular speedup y eficiencia paralela
 def calculate_speedup(base_time, parallel_times):
     return base_time / parallel_times
@@ -9,17 +24,11 @@ def calculate_speedup(base_time, parallel_times):
 def calculate_parallel_efficiency(speedup, num_blocks):
     return speedup / num_blocks
 
-# Leer datos desde archivos en la carpeta "results"
-def read_results(file_path):
-    with open(file_path, 'r') as file:
-        lines = file.readlines()
-    return [float(line.strip()) for line in lines]
-
 # [Solo GPU] Speedup vs num-bloques
-def plot_gpu_speedup(results_gpu, num_sms, output_dir):
+def plot_gpu_speedup(n_values_gpu, times_gpu, num_sms, output_dir):
     num_blocks = np.arange(1, num_sms * 5 + 1)
-    base_time = results_gpu[0]
-    speedups = calculate_speedup(base_time, results_gpu[:len(num_blocks)])
+    base_time = times_gpu[0]
+    speedups = calculate_speedup(base_time, times_gpu[:len(num_blocks)])
 
     plt.figure()
     plt.plot(num_blocks, speedups, marker='o', label="Speedup (GPU)")
@@ -33,10 +42,10 @@ def plot_gpu_speedup(results_gpu, num_sms, output_dir):
     plt.show()
 
 # [Solo GPU] Eficiencia paralela vs num-bloques
-def plot_gpu_efficiency(results_gpu, num_sms, output_dir):
+def plot_gpu_efficiency(n_values_gpu, times_gpu, num_sms, output_dir):
     num_blocks = np.arange(1, num_sms * 5 + 1)
-    base_time = results_gpu[0]
-    speedups = calculate_speedup(base_time, results_gpu[:len(num_blocks)])
+    base_time = times_gpu[0]
+    speedups = calculate_speedup(base_time, times_gpu[:len(num_blocks)])
     efficiencies = calculate_parallel_efficiency(speedups, num_blocks)
 
     plt.figure()
@@ -51,10 +60,10 @@ def plot_gpu_efficiency(results_gpu, num_sms, output_dir):
     plt.show()
 
 # Tiempo vs n (ambos, CPU y GPU)
-def plot_time_vs_n(results_cpu, results_gpu, n_values, output_dir):
+def plot_time_vs_n(n_values_cpu, times_cpu, n_values_gpu, times_gpu, output_dir):
     plt.figure()
-    plt.plot(n_values, results_cpu, marker='o', label="CPU")
-    plt.plot(n_values, results_gpu, marker='x', label="GPU")
+    plt.plot(n_values_cpu, times_cpu, marker='o', label="CPU")
+    plt.plot(n_values_gpu, times_gpu, marker='x', label="GPU")
     plt.xlabel("Tamaño de problema (n)")
     plt.ylabel("Tiempo de ejecución (s)")
     plt.title("Tiempo vs Tamaño de problema (n)")
@@ -71,19 +80,18 @@ def main():
     output_dir = os.path.join(base_dir, "../graphics")    # Carpeta `graphics` (relativa)
 
     # Leer datos de resultados
-    resultados_cpu = read_results(os.path.join(results_dir, "resultados_cpu.txt"))
-    resultados_gpu = read_results(os.path.join(results_dir, "resultados_gpu.txt"))
+    n_values_cpu, threads_cpu, times_cpu = read_cpu_results(os.path.join(results_dir, "resultados_cpu.txt"))
+    n_values_gpu, times_gpu = read_gpu_results(os.path.join(results_dir, "resultados_gpu.txt"))
 
-    # Definir valores de n y cantidad de SMs (estimado)
-    n_values = np.logspace(3, 8, num=len(resultados_cpu), base=10, dtype=int)  # Desde 1000 hasta cientos de millones
+    # Definir cantidad de SMs (estimado)
     num_sms = 8  # Cambiar al número real de SMs de tu GPU
 
     # Graficar speedup y eficiencia para GPU
-    plot_gpu_speedup(resultados_gpu, num_sms, output_dir)
-    plot_gpu_efficiency(resultados_gpu, num_sms, output_dir)
+    plot_gpu_speedup(n_values_gpu, times_gpu, num_sms, output_dir)
+    plot_gpu_efficiency(n_values_gpu, times_gpu, num_sms, output_dir)
 
     # Graficar tiempos para CPU y GPU
-    plot_time_vs_n(resultados_cpu, resultados_gpu, n_values, output_dir)
+    plot_time_vs_n(n_values_cpu, times_cpu, n_values_gpu, times_gpu, output_dir)
 
 if __name__ == "__main__":
     main()
