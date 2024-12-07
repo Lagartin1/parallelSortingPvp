@@ -1,5 +1,8 @@
 # Usa una imagen base de NVIDIA con soporte CUDA
-FROM nvidia/cuda:12.1-devel-ubuntu22.04
+FROM nvidia/cuda:12.6.3-base-ubuntu24.04
+
+# Establece el directorio de trabajo
+WORKDIR /workspace
 
 # Instala herramientas esenciales
 RUN apt-get update && apt-get install -y \
@@ -7,16 +10,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     git \
     libomp-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Establece el directorio de trabajo
-WORKDIR /workspace
-
-# Copia todos los archivos de tu proyecto al contenedor
+# Copia todo el proyecto al contenedor
 COPY . .
-
-# Compila el programa (ajusta según tu compilación)
-RUN nvcc -o prog main.cu -fopenmp
-
-# Establece el comando por defecto al ejecutar el contenedor
-CMD ["./prog", "100000", "1", "4"]
