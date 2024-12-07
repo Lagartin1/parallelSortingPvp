@@ -42,9 +42,11 @@ int main(int argc, char** argv) {
 
     vector<int> data(n); // Array de datos
     generate_random_data(data.data(), n); // Generar datos aleatorios
-    vector<int> verify_data = data;       // Copia para verificación
+    vector<int> copy_data = data;       // Copia para hacer medicion de tiempo
 
-    double start_time, end_time;
+    
+
+    double start_time, end_time,startTimeStd, endTimeStd;
 
     if (mode == 0) { // Modo CPU
         omp_set_num_threads(num_threads);
@@ -57,8 +59,15 @@ int main(int argc, char** argv) {
         radixSortGPU(data.data(), n);
         end_time = omp_get_wtime();
     }
+    startTimeStd = omp_get_wtime();
+    sort(copy_data.begin(), copy_data.end());
+    endTimeStd = omp_get_wtime();
+
+
+    
 
     cout << n << " elementos ordenados en " << (end_time - start_time) << " segundos.\n";
+    cout << n << " elementos ordenados por sort::std en " << (endTimeStd - startTimeStd) << " segundos.\n";
 
     return 0;
 }

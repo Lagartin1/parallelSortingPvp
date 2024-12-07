@@ -1,216 +1,0 @@
-Script started on 2024-12-07 19:50:26-03:00 [TERM="xterm-256color" TTY="/dev/pts/8" COLUMNS="179" LINES="15"]
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [K[?1h=[?2004h[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [Ksscr ripts[?1l>[?2004l
-]2;scripts]1;scripts[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;32m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004he ttext  st_gpu.pyptest_gpu.py[11Dpytest_gpu.py[11D[1Ctest_gpu.py[11Dhtest_gpu.py[11Dotest_gpu.py[11Dntest_gpu.py[11D3test_gpu.py[11D test_gpu.py[11D[1C[1C[1C[1C[1C[1C[1C[1C[1C[1C[1C[?1l>[?2004l
-]2;python3 test_gpu.py]1;python3n=1024, threads=1, time=3.942580e-01s
-n=1024, threads=2, time=3.495010e-01s
-n=1024, threads=3, time=3.619900e-01s
-n=1024, threads=4, time=3.406340e-01s
-n=1024, threads=5, time=3.153900e-01s
-n=1024, threads=6, time=3.102620e-01s
-n=1024, threads=7, time=3.194620e-01s
-n=1024, threads=8, time=3.480440e-01s
-n=2048, threads=1, time=3.208740e-01s
-n=2048, threads=2, time=3.132430e-01s
-n=2048, threads=3, time=3.382130e-01s
-n=2048, threads=4, time=3.330730e-01s
-n=2048, threads=5, time=3.226890e-01s
-n=2048, threads=6, time=3.212900e-01s
-n=2048, threads=7, time=3.096500e-01s
-n=2048, threads=8, time=3.496080e-01s
-n=4096, threads=1, time=2.922940e-01s
-^Xn=4096, threads=2, time=3.165810e-01s
-n=4096, threads=3, time=3.625990e-01s
-^CTraceback (most recent call last):
-  File "test_gpu.py", line 31, in <module>
-    result = subprocess.run(
-  File "/usr/lib/python3.8/subprocess.py", line 495, in run
-    stdout, stderr = process.communicate(input, timeout=timeout)
-  File "/usr/lib/python3.8/subprocess.py", line 1028, in communicate
-    stdout, stderr = self._communicate(input, endtime, timeout)
-  File "/usr/lib/python3.8/subprocess.py", line 1868, in _communicate
-    ready = selector.select(timeout)
-  File "/usr/lib/python3.8/selectors.py", line 415, in select
-    fd_event_list = self._selector.poll(timeout)
-KeyboardInterrupt
-
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;31m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hcclear[?1l>[?2004l
-]2;clear]1;clear[H[2J[3J[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;32m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hclearpython3 test_gpu.py[?1l>[?2004l
-]2;python3 test_gpu.py]1;python3n=1024, time=3.395940e-01s
-n=2048, time=3.241020e-01s
-n=4096, time=3.311840e-01s
-n=8192, time=3.139090e-01s
-n=16384, time=3.223400e-01s
-n=32768, time=3.203780e-01s
-n=65536, time=3.385770e-01s
-n=131072, time=2.992410e-01s
-n=262144, time=3.123470e-01s
-n=524288, time=3.336640e-01s
-^CTraceback (most recent call last):
-  File "test_gpu.py", line 28, in <module>
-    result = subprocess.run(
-  File "/usr/lib/python3.8/subprocess.py", line 495, in run
-    stdout, stderr = process.communicate(input, timeout=timeout)
-  File "/usr/lib/python3.8/subprocess.py", line 1028, in communicate
-    stdout, stderr = self._communicate(input, endtime, timeout)
-  File "/usr/lib/python3.8/subprocess.py", line 1894, in _communicate
-    self.wait(timeout=self._remaining_time(endtime))
-  File "/usr/lib/python3.8/subprocess.py", line 1083, in wait
-    return self._wait(timeout=timeout)
-  File "/usr/lib/python3.8/subprocess.py", line 1800, in _wait
-    time.sleep(delay)
-KeyboardInterrupt
-
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;31m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hpython3 test_gpu.py                p  ...[?1l>[?2004l
-]2;..]1;..[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hggit add .[?1l>[?2004l
-]2;git add .]1;git[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hgit add .[9D..       .  ggit c 
-zsh: do you wish to see all 137 possibilities (137 lines)? n[J[A[0m[27m[24m[35Cgit[K[1COA  co
-[J[0mcolumn        -- display data in columns
-commit        -- record changes to repository
-commit-graph  -- write and verify Git commit-graph files
-commit-tree   -- create new commit object
-config        -- get and set repository or global options
-[Jcount-objects -- count unpacked objects and display their disk consumption[J[6A[0m[27m[24m[35Cgit co[Km
-[J[A[42Cmit -
-[Jzsh: do you wish to see all 105 possibilities (35 lines)? m[J[A[0m[27m[24m[35Cgit commit -[K-all
-[7m--all                [0m  -a       -- stage all modified and deleted paths                                                                                                          [K
---allow-empty                   -- allow recording an empty commit                                                                                                               [K
---allow-empty-message           -- allow recording a commit with an empty message                                                                                                [K
---amend                         -- amend the tip of the current branch                                                                                                           [K
---author                        -- override the author name used in the commit                                                                                                   [K
---branch                        -- show branch information                                                                                                                       [K
---cleanup                       -- specify how the commit message should be cleaned up                                                                                           [K
---date                          -- override the author date used in the commit                                                                                                   [K
---dry-run                       -- only show list of paths that are to be committed or not, and any untracked                                                                    [K
---edit                 -e       -- edit the commit message before committing                                                                                                     [K
---file                 -F       -- read commit message from given file                                                                                                           [K
---gpg-sign             -S       -- GPG-sign the commit                                                                                                                           [K
---include              -i       -- update the given files and commit the whole index                                                                                             [K
-[J--interactive          [J         [J-- interactively update paths in the index file                                                                                                  [J[J[J[J[14A[0m[27m[24m[35Cgit commit --all[K
-[7m--all                [0m  [7m--all                [0m  [A[0m[27m[24m[35Cgit commit --all[K
-[J[A[51C[1m [0m[0m     m ""a"r"r"e"g"l"a"n"d"o" "e"x"t"" " " t"e"s"t" "y" "m"a"s"[?1l>[?2004l
-[J]2;git commit -m "arreglando test y mas"]1;git[main 458f58c] arreglando test y mas
- 3 files changed, 108 insertions(+), 57 deletions(-)
- create mode 100644 results/resultados_gpu.txt
- rewrite scripts/test_gpu.py (73%)
- create mode 100644 typescript
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hggit pull[?1l>[?2004l
-]2;git pull]1;gitAlready up to date.
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hgit pull   ush[?1l>[?2004l
-]2;git push]1;gitEnumerating objects: 11, done.
-Counting objects:   9% (1/11)Counting objects:  18% (2/11)Counting objects:  27% (3/11)Counting objects:  36% (4/11)Counting objects:  45% (5/11)Counting objects:  54% (6/11)Counting objects:  63% (7/11)Counting objects:  72% (8/11)Counting objects:  81% (9/11)Counting objects:  90% (10/11)Counting objects: 100% (11/11)Counting objects: 100% (11/11), done.
-Delta compression using up to 8 threads
-Compressing objects:  14% (1/7)Compressing objects:  28% (2/7)Compressing objects:  42% (3/7)Compressing objects:  57% (4/7)Compressing objects:  71% (5/7)Compressing objects:  85% (6/7)Compressing objects: 100% (7/7)Compressing objects: 100% (7/7), done.
-Writing objects:  14% (1/7)Writing objects:  28% (2/7)Writing objects:  42% (3/7)Writing objects:  57% (4/7)Writing objects:  71% (5/7)Writing objects:  85% (6/7)Writing objects: 100% (7/7)Writing objects: 100% (7/7), 1.74 KiB | 1.74 MiB/s, done.
-Total 7 (delta 3), reused 0 (delta 0)
-remote: Resolving deltas:   0% (0/3)[Kremote: Resolving deltas:  33% (1/3)[Kremote: Resolving deltas:  66% (2/3)[Kremote: Resolving deltas: 100% (3/3)[Kremote: Resolving deltas: 100% (3/3), completed with 3 local objects.[K
-To https://github.com/Lagartin1/parallelSortingPvp.git
-   3d37bad..458f58c  main -> main
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004h[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m ggit add .[?1l>[?2004l
-]2;git add .]1;git[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hggit comi mit
-[0mcommit       -- record changes to repository
-commit-graph -- write and verify Git commit-graph files
-[Jcommit-tree  -- create new commit object[J[3A[0m[27m[24m[35Cgit commit[K -m ""a"r"g"" g"e"r"n"a"" " " " r"e"" " " " g"r"e"g"a"n"d"o" "g"r"f"" a"f"i"c"o"s"[?1l>[?2004l
-[J]2;git commit -m "agregando graficos"]1;git[main e8c322e] agregando graficos
- 2 files changed, 148 insertions(+), 1 deletion(-)
- create mode 100644 scripts/graficos_cpu_gpu.py
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hgit commit -m "agregando graficos"                           git pus      ush   push[?1l>[?2004l
-]2;git push]1;gitEnumerating objects: 8, done.
-Counting objects:  12% (1/8)Counting objects:  25% (2/8)Counting objects:  37% (3/8)Counting objects:  50% (4/8)Counting objects:  62% (5/8)Counting objects:  75% (6/8)Counting objects:  87% (7/8)Counting objects: 100% (8/8)Counting objects: 100% (8/8), done.
-Delta compression using up to 8 threads
-Compressing objects:  20% (1/5)Compressing objects:  40% (2/5)Compressing objects:  60% (3/5)Compressing objects:  80% (4/5)Compressing objects: 100% (5/5)Compressing objects: 100% (5/5), done.
-Writing objects:  20% (1/5)Writing objects:  40% (2/5)Writing objects:  60% (3/5)Writing objects:  80% (4/5)Writing objects: 100% (5/5)Writing objects: 100% (5/5), 3.64 KiB | 3.64 MiB/s, done.
-Total 5 (delta 1), reused 0 (delta 0)
-remote: Resolving deltas:   0% (0/1)[Kremote: Resolving deltas: 100% (1/1)[Kremote: Resolving deltas: 100% (1/1), completed with 1 local object.[K
-To https://github.com/Lagartin1/parallelSortingPvp.git
-   458f58c..e8c322e  main -> main
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hggtg git pushcommit -m "agregando graficos"[30Dadd .                         [25Dcommit -m "agregando graficos"[30Dadd .                         [25D[?1l>[?2004l
-]2;git add .]1;git[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hgit add .push commit -m "agregando graficos"[?1l>[?2004l
-]2;git commit -m "agregando graficos"]1;git[main 96260c5] agregando graficos
- 2 files changed, 16 insertions(+), 6 deletions(-)
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004h[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m)[00m [Kgit commit -m "agregando graficos"[30Dadd .                         [25Dpush commit -m "agregando graficos"[30Dadd .                         [25Dpush [?1l>[?2004l
-]2;git push]1;gitEnumerating objects: 9, done.
-Counting objects:  11% (1/9)Counting objects:  22% (2/9)Counting objects:  33% (3/9)Counting objects:  44% (4/9)Counting objects:  55% (5/9)Counting objects:  66% (6/9)Counting objects:  77% (7/9)Counting objects:  88% (8/9)Counting objects: 100% (9/9)Counting objects: 100% (9/9), done.
-Delta compression using up to 8 threads
-Compressing objects:  20% (1/5)Compressing objects:  40% (2/5)Compressing objects:  60% (3/5)Compressing objects:  80% (4/5)Compressing objects: 100% (5/5)Compressing objects: 100% (5/5), done.
-Writing objects:  20% (1/5)Writing objects:  40% (2/5)Writing objects:  60% (3/5)Writing objects:  80% (4/5)Writing objects: 100% (5/5)Writing objects: 100% (5/5), 973 bytes | 973.00 KiB/s, done.
-Total 5 (delta 4), reused 0 (delta 0)
-remote: Resolving deltas:   0% (0/4)[Kremote: Resolving deltas:  25% (1/4)[Kremote: Resolving deltas:  50% (2/4)[Kremote: Resolving deltas:  75% (3/4)[Kremote: Resolving deltas: 100% (4/4)[Kremote: Resolving deltas: 100% (4/4), completed with 4 local objects.[K
-To https://github.com/Lagartin1/parallelSortingPvp.git
-   e8c322e..96260c5  main -> main
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m)[00m [K[?1h=[?2004h[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [Kp ssc
-[0mSCardBi.dll         SchedProv.mof       scavengeui.dll      sched               scksp.dll           screen              scrnsave.scr        scsi_ready        
-SCardDlg.dll        Schemas             scecli.dll          schedcli.dll        scm.mof             screendump          scrobj.dll          scsi_satl         
-SCardSvr.dll        Scripts             scersop.mof         schedprov.dll       scp                 script              scrrun.dll          scsi_start        
-ScDeviceEnum.dll    sc.exe              scesrv.dll          schedsvc.dll        scp.exe             scripto.dll         scsi_logging_level  scsi_stop         
-ScavengeSpace.xml   scalar.exe          schannel.dll        schemas             scrcons.exe         scriptreplay        scsi_mandat         scsi_temperature  
-[JSchCache            [Jscansetting.dll     [Jschannel.mof        [Jschtasks.exe        [Jscrcons.mof         [J[01;34mscripts[0m/            [Jscsi_readcap        [J                  [6A[0m[27m[24m[35Csc[Kr ript
-[J[J[0mScripts       [Jscript        [Jscripto.dll   [Jscriptreplay  [J[01;34mscripts[0m/    [J[A[0m[27m[24m[35Cscript[Ks[?1l>[?2004l
-[J]2;scripts]1;scripts[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;32m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hmmake  m  pptp python3 
-[J[0mgraficos_Cpu.py      [Jgraficos_cpu_gpu.py  [Jtest_cpu.py          [Jtest_gpu.py        [J[A[0m[27m[24m[24Cpython3[K[1Cg
-[J[A[33Craficos_Cpu_c[3Cgpu.py[1m [0m[0m [?1l>[?2004l
-[J]2;python3 graficos_cpu_gpu.py]1;python3/usr/lib/python3/dist-packages/requests/__init__.py:89: RequestsDependencyWarning: urllib3 (2.2.3) or chardet (3.0.4) doesn't match a supported version!
-  warnings.warn("urllib3 ({}) or chardet ({}) doesn't match a supported "
-Traceback (most recent call last):
-  File "graficos_cpu_gpu.py", line 89, in <module>
-    main()
-  File "graficos_cpu_gpu.py", line 74, in main
-    resultados_cpu = read_results(os.path.join(results_dir, "resultados_cpu.txt"))
-  File "graficos_cpu_gpu.py", line 16, in read_results
-    return [float(line.strip()) for line in lines]
-  File "graficos_cpu_gpu.py", line 16, in <listcomp>
-    return [float(line.strip()) for line in lines]
-ValueError: could not convert string to float: 'n,threads,time'
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;31m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hggit pu  pushcommit -m "agregando graficos"[30Dadd .                         [25Dpush add .[?1l>[?2004l
-]2;git add .]1;git[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;32m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hgit add .[9Dpython3 graficos_cpu_gpu.py[27Dscripts                    [20Dgit pushcommit -m "agregando graficos"[?1l>[?2004l
-]2;git commit -m "agregando graficos"]1;git[main d9847b8] agregando graficos
- 1 file changed, 30 insertions(+), 22 deletions(-)
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;32m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hgit commit -m "agregando graficos"[30Dadd .                         [25D[9Dpython3 graficos_cpu_gpu.py[27Dscripts                    [20D     s  ggit push[?1l>[?2004l
-]2;git push]1;gitEnumerating objects: 7, done.
-Counting objects:  14% (1/7)Counting objects:  28% (2/7)Counting objects:  42% (3/7)Counting objects:  57% (4/7)Counting objects:  71% (5/7)Counting objects:  85% (6/7)Counting objects: 100% (7/7)Counting objects: 100% (7/7), done.
-Delta compression using up to 8 threads
-Compressing objects:  25% (1/4)Compressing objects:  50% (2/4)Compressing objects:  75% (3/4)Compressing objects: 100% (4/4)Compressing objects: 100% (4/4), done.
-Writing objects:  25% (1/4)Writing objects:  50% (2/4)Writing objects:  75% (3/4)Writing objects: 100% (4/4)Writing objects: 100% (4/4), 674 bytes | 674.00 KiB/s, done.
-Total 4 (delta 3), reused 0 (delta 0)
-remote: Resolving deltas:   0% (0/3)[Kremote: Resolving deltas:  33% (1/3)[Kremote: Resolving deltas:  66% (2/3)[Kremote: Resolving deltas: 100% (3/3)[Kremote: Resolving deltas: 100% (3/3), completed with 3 local objects.[K
-To https://github.com/Lagartin1/parallelSortingPvp.git
-   96260c5..d9847b8  main -> main
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;32m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hgit pushcommit -m "agregando graficos"[30Dadd .                         [25D[9Dpython3 graficos_cpu_gpu.py[27Dscripts                    [20Dpython3 graficos_cpu_gpu.py[?1l>[?2004l
-]2;python3 graficos_cpu_gpu.py]1;python3/usr/lib/python3/dist-packages/requests/__init__.py:89: RequestsDependencyWarning: urllib3 (2.2.3) or chardet (3.0.4) doesn't match a supported version!
-  warnings.warn("urllib3 ({}) or chardet ({}) doesn't match a supported "
-ValueError: could not convert string to float: 'n'
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "graficos_cpu_gpu.py", line 97, in <module>
-    main()
-  File "graficos_cpu_gpu.py", line 83, in main
-    n_values_cpu, threads_cpu, times_cpu = read_cpu_results(os.path.join(results_dir, "resultados_cpu.txt"))
-  File "graficos_cpu_gpu.py", line 7, in read_cpu_results
-    data = np.loadtxt(file_path, delimiter=",", dtype=float)
-  File "/home/francisco/.local/lib/python3.8/site-packages/numpy/lib/npyio.py", line 1356, in loadtxt
-    arr = _read(fname, dtype=dtype, comment=comment, delimiter=delimiter,
-  File "/home/francisco/.local/lib/python3.8/site-packages/numpy/lib/npyio.py", line 999, in _read
-    arr = _load_from_filelike(
-ValueError: could not convert string 'n' to float64 at row 0, column 1.
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;31m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hpython3 graficos_cpu_gpu.py[27Dgit push                   [19D[8Dpython3 graficos_cpu_gpu.py[?1l>[?2004l
-]2;python3 graficos_cpu_gpu.py]1;python3/usr/lib/python3/dist-packages/requests/__init__.py:89: RequestsDependencyWarning: urllib3 (2.2.3) or chardet (3.0.4) doesn't match a supported version!
-  warnings.warn("urllib3 ({}) or chardet ({}) doesn't match a supported "
-Traceback (most recent call last):
-  File "graficos_cpu_gpu.py", line 97, in <module>
-    main()
-  File "graficos_cpu_gpu.py", line 90, in main
-    plot_gpu_speedup(n_values_gpu, times_gpu, num_sms, output_dir)
-  File "graficos_cpu_gpu.py", line 34, in plot_gpu_speedup
-    plt.plot(num_blocks, speedups, marker='o', label="Speedup (GPU)")
-  File "/home/francisco/.local/lib/python3.8/site-packages/matplotlib/pyplot.py", line 2812, in plot
-    return gca().plot(
-  File "/home/francisco/.local/lib/python3.8/site-packages/matplotlib/axes/_axes.py", line 1688, in plot
-    lines = [*self._get_lines(*args, data=data, **kwargs)]
-  File "/home/francisco/.local/lib/python3.8/site-packages/matplotlib/axes/_base.py", line 311, in __call__
-    yield from self._plot_args(
-  File "/home/francisco/.local/lib/python3.8/site-packages/matplotlib/axes/_base.py", line 504, in _plot_args
-    raise ValueError(f"x and y must have same first dimension, but "
-ValueError: x and y must have same first dimension, but have shapes (40,) and (20,)
-[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;31m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hpython3 graficos_cpu_gpu.py[?1l>[?2004l
-]2;python3 graficos_cpu_gpu.py]1;python3graficos_cpu_gpu.py:42: UserWarning: Matplotlib is currently using
