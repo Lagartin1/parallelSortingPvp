@@ -65,16 +65,18 @@ def plot_time_vs_n(results_cpu, results_gpu, n_values, output_dir):
     plt.show()
 
 def main():
+    # Definir rutas relativas desde el directorio `scripts`
+    base_dir = os.path.dirname(os.path.abspath(__file__))  # Directorio actual (`scripts`)
+    results_dir = os.path.join(base_dir, "../results")     # Carpeta `results` (relativa)
+    output_dir = os.path.join(base_dir, "../graphics")    # Carpeta `graphics` (relativa)
+
     # Leer datos de resultados
-    resultados_cpu = read_results("results/resultados_cpu.txt")
-    resultados_gpu = read_results("results/resultados_gpu.txt")
+    resultados_cpu = read_results(os.path.join(results_dir, "resultados_cpu.txt"))
+    resultados_gpu = read_results(os.path.join(results_dir, "resultados_gpu.txt"))
 
     # Definir valores de n y cantidad de SMs (estimado)
     n_values = np.logspace(3, 8, num=len(resultados_cpu), base=10, dtype=int)  # Desde 1000 hasta cientos de millones
     num_sms = 8  # Cambiar al número real de SMs de tu GPU
-
-    # Directorio de salida para los gráficos
-    output_dir = "graphics"
 
     # Graficar speedup y eficiencia para GPU
     plot_gpu_speedup(resultados_gpu, num_sms, output_dir)
