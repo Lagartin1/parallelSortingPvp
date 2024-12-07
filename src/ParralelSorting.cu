@@ -9,9 +9,7 @@
 #include <thrust/scan.h>
 
 // Parámetros del Radix Sort
-#define RADIX_BITS 1  // para emular el bit-a-bit (LSD) del ejemplo
-#define BITS 32
-#define BLOCK_SIZE 256
+#define MAX_BLOCK_SZ 128
 #define CHECK_CUDA_ERROR(call) { \
     cudaError_t err = call; \
     if (err != cudaSuccess) { \
@@ -28,12 +26,7 @@ void generate_random_data(int* data, size_t n);
 void merge(int* arr, int* left, int left_size, int* right, int right_size);
 void parallel_merge_sort(int* arr, int n);
 void cpu_parallel_sort(int* arr, size_t n);
-__global__ void maskKernel(int *d_input, int *d_mask, int bit, int n);
-__global__ void computeScanKernel(int *d_mask, int *d_scan, int n);
-__global__ void KernelScatter(int *d_input, int *d_output, int *d_mask, int *d_scan, int n, int totalZeros);
-
-void gpu_radix_sort(int *arr, int n, int gridSize);
-
+void gpu_radix_sort(int* data, size_t n, int blocks);
 // Función principal
 int main(int argc, char** argv) {
     if (argc != 4) {
@@ -69,11 +62,11 @@ int main(int argc, char** argv) {
         end_time = omp_get_wtime();
     } 
     else if (mode == 1) { // Modo GPU
-        int blocks = BLOCK_SIZE;
         start_time = omp_get_wtime();
-        gpu_radix_sort(data.data(), n, blocks);
+        gpu_radix_sort(data.data(), n, MAX_BLOCK_SZ);
         end_time = omp_get_wtime();
     }
+
 
     // Verificación
     sort(verify_data.begin(), verify_data.end());
@@ -95,7 +88,7 @@ int main(int argc, char** argv) {
 void generate_random_data(int* data, size_t n) {
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<int> dist(0, (1<<16)-1);
+    uniform_int_distribution<int> dist(0, 99999 );
 
     #pragma omp parallel for
     for (size_t i = 0; i < n; i++) {
@@ -148,86 +141,126 @@ void cpu_parallel_sort(int* arr, size_t n) {
     }
 }
 
-// kernel para calcular la mask de bits en Radix Sort
-__global__ void maskKernel(int *d_input, int *d_mask, int bit, int n) {
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (idx < n) {
-        d_mask[idx] = (d_input[idx] >> bit) & 1;
-    }
-}
+// GPU Radix Sort Kernels
+__global__ void gpu_radix_sort_local(unsigned int* d_out_sorted, unsigned int* d_prefix_sums, unsigned int* d_block_sums,
+                                     unsigned int input_shift_width, unsigned int* d_in, unsigned int d_in_len, unsigned int max_elems_per_block) {
+    extern __shared__ unsigned int shmem[];
+    unsigned int* s_data = shmem;
+    unsigned int* s_mask_out = &s_data[max_elems_per_block];
+    unsigned int* s_merged_scan_mask_out = &s_mask_out[max_elems_per_block + 1];
+    unsigned int* s_mask_out_sums = &s_merged_scan_mask_out[max_elems_per_block];
+    unsigned int* s_scan_mask_out_sums = &s_mask_out_sums[4];
 
-// kernel para calcular el scan exclusivo en Radix Sort
-__global__ void computeScanKernel(int *d_mask, int *d_scan, int n) {
-    extern __shared__ int temp[];
-    int idx = threadIdx.x;
-    int i = blockIdx.x * blockDim.x + idx;
+    unsigned int thid = threadIdx.x;
+    unsigned int cpy_idx = max_elems_per_block * blockIdx.x + thid;
+    if (cpy_idx < d_in_len)
+        s_data[thid] = d_in[cpy_idx];
+    else
+        s_data[thid] = 0;
 
-    if (i < n) {
-        temp[idx] = d_mask[i];
-    } else {
-        temp[idx] = 0;
-    }
     __syncthreads();
 
-    for (int offset = 1; offset < blockDim.x; offset *= 2) {
-        int val = idx >= offset ? temp[idx - offset] : 0;
-        __syncthreads();
-        temp[idx] += val;
-        __syncthreads();
-    }
+    unsigned int t_data = s_data[thid];
+    unsigned int t_2bit_extract = (t_data >> input_shift_width) & 3;
 
-    if (i < n) {
-        d_scan[i] = temp[idx];
-    }
-}
+    for (unsigned int i = 0; i < 4; ++i) {
+        s_mask_out[thid] = 0;
+        if (thid == 0) s_mask_out[max_elems_per_block] = 0;
 
-// kernel para hacer scatter en Radix Sort
-__global__ void KernelScatter(int *d_input, int *d_output, int *d_mask, int *d_scan, int n, int totalZeros) {
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (idx < n) {
-        int pos;
-        if (d_mask[idx] == 0) {
-            pos = d_scan[idx];
-        } else {
-            pos = totalZeros + idx - d_scan[idx];
+        __syncthreads();
+
+        if (cpy_idx < d_in_len) {
+            bool val_equals_i = t_2bit_extract == i;
+            s_mask_out[thid] = val_equals_i;
         }
-        d_output[pos] = d_input[idx];
+
+        __syncthreads();
+
+        for (unsigned int d = 0; d < log2f(max_elems_per_block); ++d) {
+            int partner = thid - (1 << d);
+            unsigned int sum = (partner >= 0) ? s_mask_out[thid] + s_mask_out[partner] : s_mask_out[thid];
+            __syncthreads();
+            s_mask_out[thid] = sum;
+            __syncthreads();
+        }
+
+        if (thid == 0) {
+            s_mask_out[0] = 0;
+            unsigned int total_sum = s_mask_out[max_elems_per_block];
+            s_mask_out_sums[i] = total_sum;
+            d_block_sums[i * gridDim.x + blockIdx.x] = total_sum;
+        }
+
+        __syncthreads();
+
+        if (cpy_idx < d_in_len) {
+            unsigned int t_prefix_sum = s_mask_out[thid];
+            unsigned int new_pos = t_prefix_sum + s_scan_mask_out_sums[t_2bit_extract];
+            __syncthreads();
+            s_data[new_pos] = t_data;
+        }
+
+        __syncthreads();
+    }
+
+    if (cpy_idx < d_in_len) {
+        d_out_sorted[cpy_idx] = s_data[thid];
     }
 }
 
-// implementación de Radix Sort en GPU
-void gpu_radix_sort(int *arr, int n, int gridSize) {
-    int *d_input, *d_output, *d_mask, *d_scan;
-    cudaMalloc(&d_input, n * sizeof(int));
-    cudaMalloc(&d_output, n * sizeof(int));
-    cudaMalloc(&d_mask, n * sizeof(int));
-    cudaMalloc(&d_scan, n * sizeof(int));
+__global__ void gpu_glbl_shuffle(unsigned int* d_out, unsigned int* d_in, unsigned int* d_scan_block_sums,
+                                 unsigned int* d_prefix_sums, unsigned int input_shift_width, unsigned int d_in_len, unsigned int max_elems_per_block) {
+    unsigned int thid = threadIdx.x;
+    unsigned int cpy_idx = max_elems_per_block * blockIdx.x + thid;
 
-    cudaMemcpy(d_input, arr, n * sizeof(int), cudaMemcpyHostToDevice);
+    if (cpy_idx < d_in_len) {
+        unsigned int t_data = d_in[cpy_idx];
+        unsigned int t_2bit_extract = (t_data >> input_shift_width) & 3;
+        unsigned int t_prefix_sum = d_prefix_sums[cpy_idx];
+        unsigned int data_glbl_pos = d_scan_block_sums[t_2bit_extract * gridDim.x + blockIdx.x] + t_prefix_sum;
+        __syncthreads();
+        d_out[data_glbl_pos] = t_data;
+    }
+}
 
-    dim3 blockSize(256);
+void gpu_radix_sort(int* data, size_t n, int blocks) {
+    unsigned int block_sz = MAX_BLOCK_SZ;
+    unsigned int max_elems_per_block = block_sz;
+    unsigned int grid_sz = (n + max_elems_per_block - 1) / max_elems_per_block;
 
-    for (int bit = 0; bit < 32; ++bit) {
-        maskKernel<<<gridSize, blockSize>>>(d_input, d_mask, bit, n);
+    unsigned int* d_in;
+    unsigned int* d_out;
+    cudaMalloc(&d_in, sizeof(unsigned int) * n);
+    cudaMalloc(&d_out, sizeof(unsigned int) * n);
+    cudaMemcpy(d_in, data, sizeof(unsigned int) * n, cudaMemcpyHostToDevice);
+
+    unsigned int* d_prefix_sums;
+    unsigned int d_prefix_sums_len = n;
+    cudaMalloc(&d_prefix_sums, sizeof(unsigned int) * d_prefix_sums_len);
+    cudaMemset(d_prefix_sums, 0, sizeof(unsigned int) * d_prefix_sums_len);
+
+    unsigned int* d_block_sums;
+    unsigned int d_block_sums_len = 4 * grid_sz;
+    cudaMalloc(&d_block_sums, sizeof(unsigned int) * d_block_sums_len);
+    cudaMemset(d_block_sums, 0, sizeof(unsigned int) * d_block_sums_len);
+
+    unsigned int* d_scan_block_sums;
+    cudaMalloc(&d_scan_block_sums, sizeof(unsigned int) * d_block_sums_len);
+    cudaMemset(d_scan_block_sums, 0, sizeof(unsigned int) * d_block_sums_len);
+
+    unsigned int shmem_sz = (max_elems_per_block * 5) * sizeof(unsigned int);
+
+    for (unsigned int shift_width = 0; shift_width <= 30; shift_width += 2) {
+        gpu_radix_sort_local<<<grid_sz, block_sz, shmem_sz>>>(d_out, d_prefix_sums, d_block_sums, shift_width, d_in, n, max_elems_per_block);
         cudaDeviceSynchronize();
-
-        computeScanKernel<<<gridSize, blockSize, blockSize.x * sizeof(int)>>>(d_mask, d_scan, n);
+        gpu_glbl_shuffle<<<grid_sz, block_sz>>>(d_in, d_out, d_scan_block_sums, d_prefix_sums, shift_width, n, max_elems_per_block);
         cudaDeviceSynchronize();
-
-        int totalZeros;
-        cudaMemcpy(&totalZeros, &d_scan[n - 1], sizeof(int), cudaMemcpyDeviceToHost);
-        totalZeros += 1 - ((arr[n - 1] >> bit) & 1);
-
-        KernelScatter<<<gridSize, blockSize>>>(d_input, d_output, d_mask, d_scan, n, totalZeros);
-        cudaDeviceSynchronize();
-
-        swap(d_input, d_output);
     }
 
-    cudaMemcpy(arr, d_input, n * sizeof(int), cudaMemcpyDeviceToHost);
-
-    cudaFree(d_input);
-    cudaFree(d_output);
-    cudaFree(d_mask);
-    cudaFree(d_scan);
+    cudaMemcpy(data, d_out, sizeof(unsigned int) * n, cudaMemcpyDeviceToHost);
+    cudaFree(d_scan_block_sums);
+    cudaFree(d_block_sums);
+    cudaFree(d_prefix_sums);
+    cudaFree(d_in);
+    cudaFree(d_out);
 }
