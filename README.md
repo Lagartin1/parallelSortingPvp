@@ -70,3 +70,17 @@ Donde:
 El ordenamiento es correcto!
 16777216 elementos ordenados en 0.838904 segundos.
 ```
+# Ejecucion script
+## scripts de pruebas:
+debe estar en el directorio `/scripts` ejecute el siguiente comando:
+```bash
+python3 test_cpu.py
+```
+los resultados se guardaran en la carpeta `/results`
+
+## scripts de graficos solo CPU:
+debe estar en el directorio `/scripts` ejecute el siguiente comando:
+```bash
+python3 graficos_Cpu.py
+```
+los graficos se guardaran en la carpeta `/graphics
