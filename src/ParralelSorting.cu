@@ -6,7 +6,6 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-
 // Constantes para el Sort en GPU
 #define BLOCK_SIZE 512
 #define RADIX_BITS 4
@@ -14,6 +13,7 @@
 #define RADIX_MASK ((1 << RADIX_BITS) - 1)
 
 using namespace std;
+
 void generate_random_data(int* data, size_t n);
 void merge(int* arr, int* left, int left_size, int* right, int right_size);
 void parallel_merge_sort(int* arr, int n);
@@ -22,7 +22,6 @@ __global__ void count_kernel(int* input, int* count, int n, int shift);
 __global__ void scatter_kernel(int* input, int* output, int* global_offset, int n, int shift);
 
 void gpu_radix_sort(int* data, int n);
-
 
 // Función principal
 int main(int argc, char** argv) {
@@ -108,6 +107,7 @@ void merge(int* arr, int* left, int left_size, int* right, int right_size) {
     while (i < left_size) temp[k++] = left[i++];
     while (j < right_size) temp[k++] = right[j++];
 
+
     copy(temp.begin(), temp.end(), arr);
 }
 
@@ -135,7 +135,6 @@ void cpu_parallel_sort(int* arr, size_t n) {
         parallel_merge_sort(arr, n);
     }
 }
-
 
 // Kernel para contar las ocurrencias de cada dígito en Radix Sort
 __global__ void count_kernel(int* input, int* count, int n, int shift) {
