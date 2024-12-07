@@ -40,4 +40,64 @@ n=2048, time=3.241020e-01s
 n=4096, time=3.311840e-01s
 n=8192, time=3.139090e-01s
 n=16384, time=3.223400e-01s
-n=32768, time
+n=32768, time=3.203780e-01s
+n=65536, time=3.385770e-01s
+n=131072, time=2.992410e-01s
+n=262144, time=3.123470e-01s
+n=524288, time=3.336640e-01s
+^CTraceback (most recent call last):
+  File "test_gpu.py", line 28, in <module>
+    result = subprocess.run(
+  File "/usr/lib/python3.8/subprocess.py", line 495, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/usr/lib/python3.8/subprocess.py", line 1028, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+  File "/usr/lib/python3.8/subprocess.py", line 1894, in _communicate
+    self.wait(timeout=self._remaining_time(endtime))
+  File "/usr/lib/python3.8/subprocess.py", line 1083, in wait
+    return self._wait(timeout=timeout)
+  File "/usr/lib/python3.8/subprocess.py", line 1800, in _wait
+    time.sleep(delay)
+KeyboardInterrupt
+
+[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;31m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hpython3 test_gpu.py                p  ...[?1l>[?2004l
+]2;..]1;..[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hggit add .[?1l>[?2004l
+]2;git add .]1;git[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hgit add .[9D..       .  ggit c 
+zsh: do you wish to see all 137 possibilities (137 lines)? n[J[A[0m[27m[24m[35Cgit[K[1COA  co
+[J[0mcolumn        -- display data in columns
+commit        -- record changes to repository
+commit-graph  -- write and verify Git commit-graph files
+commit-tree   -- create new commit object
+config        -- get and set repository or global options
+[Jcount-objects -- count unpacked objects and display their disk consumption[J[6A[0m[27m[24m[35Cgit co[Km
+[J[A[42Cmit -
+[Jzsh: do you wish to see all 105 possibilities (35 lines)? m[J[A[0m[27m[24m[35Cgit commit -[K-all
+[7m--all                [0m  -a       -- stage all modified and deleted paths                                                                                                          [K
+--allow-empty                   -- allow recording an empty commit                                                                                                               [K
+--allow-empty-message           -- allow recording a commit with an empty message                                                                                                [K
+--amend                         -- amend the tip of the current branch                                                                                                           [K
+--author                        -- override the author name used in the commit                                                                                                   [K
+--branch                        -- show branch information                                                                                                                       [K
+--cleanup                       -- specify how the commit message should be cleaned up                                                                                           [K
+--date                          -- override the author date used in the commit                                                                                                   [K
+--dry-run                       -- only show list of paths that are to be committed or not, and any untracked                                                                    [K
+--edit                 -e       -- edit the commit message before committing                                                                                                     [K
+--file                 -F       -- read commit message from given file                                                                                                           [K
+--gpg-sign             -S       -- GPG-sign the commit                                                                                                                           [K
+--include              -i       -- update the given files and commit the whole index                                                                                             [K
+[J--interactive          [J         [J-- interactively update paths in the index file                                                                                                  [J[J[J[J[14A[0m[27m[24m[35Cgit commit --all[K
+[7m--all                [0m  [7m--all                [0m  [A[0m[27m[24m[35Cgit commit --all[K
+[J[A[51C[1m [0m[0m     m ""a"r"r"e"g"l"a"n"d"o" "e"x"t"" " " t"e"s"t" "y" "m"a"s"[?1l>[?2004l
+[J]2;git commit -m "arreglando test y mas"]1;git[main 458f58c] arreglando test y mas
+ 3 files changed, 108 insertions(+), 57 deletions(-)
+ create mode 100644 results/resultados_gpu.txt
+ rewrite scripts/test_gpu.py (73%)
+ create mode 100644 typescript
+[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hggit pull[?1l>[?2004l
+]2;git pull]1;gitAlready up to date.
+[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hgit pull   ush[?1l>[?2004l
+]2;git push]1;gitEnumerating objects: 11, done.
+Counting objects:   9% (1/11)Counting objects:  18% (2/11)Counting objects:  27% (3/11)Counting objects:  36% (4/11)Counting objects:  45% (5/11)Counting objects:  54% (6/11)Counting objects:  63% (7/11)Counting objects:  72% (8/11)Counting objects:  81% (9/11)Counting objects:  90% (10/11)Counting objects: 100% (11/11)Counting objects: 100% (11/11), done.
+Delta compression using up to 8 threads
+Compressing objects:  14% (1/7)Compressing objects:  28% (2/7)Compressing objects:  42% (3/7)Compressing objects:  57% (4/7)Compressing objects:  71% (5/7)Compressing objects:  85% (6/7)Compressing objects: 100% (7/7)Compressing objects: 100% (7/7), done.
+Writing objects:  14% (1/7)Writing objects:  28% (2/7)Writing objects:  42% (3/7)Writing objects:  57% (4/7)Writing objects:  71
