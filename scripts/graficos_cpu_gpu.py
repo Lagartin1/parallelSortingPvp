@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # Leer datos de CPU en formato: n,threads,tiempo
 def read_cpu_results(file_path):
-    data = np.loadtxt(file_path, delimiter=",", dtype=float)
+    data = np.loadtxt(file_path, delimiter=",", dtype=float, skiprows=1)  # Ignorar la primera fila (cabeceras)
     n_values = data[:, 0]
     threads = data[:, 1]
     times = data[:, 2]
@@ -12,7 +12,7 @@ def read_cpu_results(file_path):
 
 # Leer datos de GPU en formato: n,tiempo
 def read_gpu_results(file_path):
-    data = np.loadtxt(file_path, delimiter=",", dtype=float)
+    data = np.loadtxt(file_path, delimiter=",", dtype=float, skiprows=1)  # Ignorar la primera fila (cabeceras)
     n_values = data[:, 0]
     times = data[:, 1]
     return n_values, times
@@ -26,7 +26,7 @@ def calculate_parallel_efficiency(speedup, num_blocks):
 
 # [Solo GPU] Speedup vs num-bloques
 def plot_gpu_speedup(n_values_gpu, times_gpu, num_sms, output_dir):
-    num_blocks = np.arange(1, num_sms * 5 + 1)
+    num_blocks = np.arange(1, len(times_gpu) + 1)  # Ajustar num_blocks a la cantidad de datos disponibles
     base_time = times_gpu[0]
     speedups = calculate_speedup(base_time, times_gpu[:len(num_blocks)])
 
@@ -43,7 +43,7 @@ def plot_gpu_speedup(n_values_gpu, times_gpu, num_sms, output_dir):
 
 # [Solo GPU] Eficiencia paralela vs num-bloques
 def plot_gpu_efficiency(n_values_gpu, times_gpu, num_sms, output_dir):
-    num_blocks = np.arange(1, num_sms * 5 + 1)
+    num_blocks = np.arange(1, len(times_gpu) + 1)  # Ajustar num_blocks a la cantidad de datos disponibles
     base_time = times_gpu[0]
     speedups = calculate_speedup(base_time, times_gpu[:len(num_blocks)])
     efficiencies = calculate_parallel_efficiency(speedups, num_blocks)
