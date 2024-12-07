@@ -5,12 +5,13 @@
 #include <omp.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <thrust/device_vector.h>
+#include <thrust/scan.h>
 
-// Constantes para el Sort en GPU
+// Parámetros del Radix Sort
+#define RADIX_BITS 1  // para emular el bit-a-bit (LSD) del ejemplo
+#define BITS 32
 #define BLOCK_SIZE 256
-#define RADIX_BITS 4
-#define RADIX_SIZE (1 << RADIX_BITS)
-#define RADIX_MASK ((1 << RADIX_BITS) - 1)
 #define CHECK_CUDA_ERROR(call) { \
     cudaError_t err = call; \
     if (err != cudaSuccess) { \
@@ -29,7 +30,7 @@ void parallel_merge_sort(int* arr, int n);
 void cpu_parallel_sort(int* arr, size_t n);
 void checkGPUMemory();
 void printGPUProperties();
-void gpu_radix_sort(int* data, int n);
+void gpu_radix_sort(int* data, size_t n);
 
 // Función principal
 int main(int argc, char** argv) {
@@ -54,9 +55,8 @@ int main(int argc, char** argv) {
     }
 
     vector<int> data(n); // Array de datos
-    vector<int> verify_data(n); // Array para verificación
     generate_random_data(data.data(), n); // Generar datos aleatorios
-    verify_data = data;
+    vector<int> verify_data = data;       // Copia para verificación
 
     double start_time, end_time;
 
@@ -67,11 +67,26 @@ int main(int argc, char** argv) {
         end_time = omp_get_wtime();
     } 
     else if (mode == 1) { // Modo GPU
+        // Reservar memoria host para el sorting en GPU
+        int* h_data = (int*)malloc(n * sizeof(int));
+        if (!h_data) {
+            cerr << "Error: no se pudo asignar memoria host para h_data.\n";
+            return 1;
+        }
+        // Copiar data a h_data
+        std::copy(data.begin(), data.end(), h_data);
+
         start_time = omp_get_wtime();
-        gpu_radix_sort(data.data(), n);
+        // Llamar a gpu_radix_sort que asume que h_data es host
+        gpu_radix_sort(h_data, n);
         end_time = omp_get_wtime();
+
+        // Copiar resultado a data
+        std::copy(h_data, h_data + n, data.begin());
+        free(h_data);
     }
 
+    // Verificación
     sort(verify_data.begin(), verify_data.end());
     bool is_correct = equal(data.begin(), data.end(), verify_data.begin());
 
@@ -80,7 +95,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     cout << "El ordenamiento es correcto!\n";
-    cout << n << " elementos ordenados en " << end_time - start_time << " segundos.\n";
+    cout << n << " elementos ordenados en " << (end_time - start_time) << " segundos.\n";
 
     return 0;
 }
@@ -144,149 +159,111 @@ void cpu_parallel_sort(int* arr, size_t n) {
     }
 }
 
-// Función para verificar recursos de la GPU
-void checkGPUMemory() {
-    size_t free_mem, total_mem;
-    CHECK_CUDA_ERROR(cudaMemGetInfo(&free_mem, &total_mem));
-    
-    cout << "GPU Memory Info:" << endl;
-    cout << "Total Memory: " << total_mem / (1024 * 1024) << " MB" << endl;
-    cout << "Free Memory: " << free_mem / (1024 * 1024) << " MB" << endl;
-}
-
-// Función para obtener propiedades de la GPU
-void printGPUProperties() {
-    cudaDeviceProp prop;
-    int deviceCount;
-    
-    CHECK_CUDA_ERROR(cudaGetDeviceCount(&deviceCount));
-    
-    for (int device = 0; device < deviceCount; ++device) {
-        CHECK_CUDA_ERROR(cudaGetDeviceProperties(&prop, device));
-        
-        cout << "GPU Device " << device << " Properties:" << endl;
-        cout << "  Name: " << prop.name << endl;
-        cout << "  Compute Capability: " << prop.major << "." << prop.minor << endl;
-        cout << "  Total Global Memory: " << prop.totalGlobalMem / (1024 * 1024) << " MB" << endl;
-        cout << "  Multiprocessor Count: " << prop.multiProcessorCount << endl;
-        cout << "  Max Threads per Block: " << prop.maxThreadsPerBlock << endl;
-        cout << "  Max Block Dimensions: " 
-             << prop.maxThreadsDim[0] << " x " 
-             << prop.maxThreadsDim[1] << " x " 
-             << prop.maxThreadsDim[2] << endl;
-        cout << "  Max Grid Dimensions: " 
-             << prop.maxGridSize[0] << " x " 
-             << prop.maxGridSize[1] << " x " 
-             << prop.maxGridSize[2] << endl;
+// Kernel para generar el predicate basado en un bit dado
+__global__ void predicate_kernel(const int* __restrict__ d_input, int* __restrict__ d_predicate, int bit, size_t n) {
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n) {
+        int val = d_input[idx];
+        int bit_val = (val >> bit) & 1;
+        d_predicate[idx] = bit_val; // 1 si el bit es 1, 0 si es 0
     }
 }
 
-// Kernel de conteo para Radix Sort
-__global__ void count_kernel(int* input, int* count, size_t n, int shift) {
-    __shared__ int local_count[RADIX_SIZE];
-
-    int tid = threadIdx.x;
-    size_t gid = blockIdx.x * (size_t)blockDim.x + threadIdx.x;
-
-    // Inicializar contadores locales
-    if (tid < RADIX_SIZE) {
-        local_count[tid] = 0;
-    }
-    __syncthreads();
-
-    // Contar en bloques más grandes
-    for (size_t i = gid; i < n; i += gridDim.x * blockDim.x) {
-        int digit = (input[i] >> shift) & RADIX_MASK;
-        atomicAdd(&local_count[digit], 1);
-    }
-    __syncthreads();
-
-    // Actualizar contadores globales
-    if (tid < RADIX_SIZE) {
-        atomicAdd(&count[tid], local_count[tid]);
+// Kernel para aplicar el resultado del reorder usando predicate y su complemento
+__global__ void reorder_kernel(const int* __restrict__ d_input,
+                               int* __restrict__ d_output,
+                               const int* __restrict__ d_predicate,
+                               const int* __restrict__ d_predicate_scan,
+                               const int* __restrict__ d_ters_predicate_scan,
+                               int num_ones,
+                               size_t n) {
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n) {
+        int p = d_predicate[idx];
+        if (p == 1) {
+            // Índice para los que tienen el bit en 1
+            int new_index = d_predicate_scan[idx];
+            d_output[new_index] = d_input[idx];
+        } else {
+            // Índice para los que tienen el bit en 0
+            int new_index = d_ters_predicate_scan[idx] + num_ones;
+            d_output[new_index] = d_input[idx];
+        }
     }
 }
 
-// Kernel de dispersión para Radix Sort
-__global__ void scatter_kernel(int* input, int* output, int* global_offset, size_t n, int shift) {
-    size_t gid = blockIdx.x * (size_t)blockDim.x + threadIdx.x;
+// Función principal Radix Sort (bit a bit usando predicate)
+void gpu_radix_sort(int* data, size_t n) {
+    if (n == 0) return;
 
-    // Procesar en bloques más grandes
-    for (size_t i = gid; i < n; i += gridDim.x * blockDim.x) {
-        int digit = (input[i] >> shift) & RADIX_MASK;
-        size_t pos = atomicAdd((unsigned int*)&global_offset[digit], 1);
-        output[pos] = input[i];
-    }
-}
+    // Memoria en GPU
+    int *d_input, *d_output, *d_predicate;
+    CHECK_CUDA_ERROR(cudaMalloc((void**)&d_input, n*sizeof(int)));
+    CHECK_CUDA_ERROR(cudaMalloc((void**)&d_output, n*sizeof(int)));
+    CHECK_CUDA_ERROR(cudaMalloc((void**)&d_predicate, n*sizeof(int)));
 
-// Implementación de Radix Sort en GPU
-void gpu_radix_sort(int* data, int n) {
-    // Verificar recursos de GPU
-    checkGPUMemory();
+    CHECK_CUDA_ERROR(cudaMemcpy(d_input, data, n*sizeof(int), cudaMemcpyHostToDevice));
 
-    // Calcular memoria necesaria
-    size_t input_memory = (size_t)n * sizeof(int);
-    size_t radix_memory = RADIX_SIZE * sizeof(int);
+    // Vectores de thrust para scans
+    thrust::device_vector<int> d_predicate_scan(n);
+    thrust::device_vector<int> d_ters_predicate(n);
+    thrust::device_vector<int> d_ters_predicate_scan(n);
 
-    // Punteros de dispositivo
-    int *d_input = nullptr, *d_output = nullptr, *d_count = nullptr, *d_offsets = nullptr;
+    int passes = BITS; // para 32 bits
 
-    try {
-        // Asignación de memoria con verificación de errores
-        CHECK_CUDA_ERROR(cudaMalloc(&d_input, input_memory));
-        CHECK_CUDA_ERROR(cudaMalloc(&d_output, input_memory));
-        CHECK_CUDA_ERROR(cudaMalloc(&d_count, radix_memory));
-        CHECK_CUDA_ERROR(cudaMalloc(&d_offsets, radix_memory));
-
-        // Copiar datos de entrada
-        CHECK_CUDA_ERROR(cudaMemcpy(d_input, data, input_memory, cudaMemcpyHostToDevice));
-
-        // Configuración de bloques
-        int num_blocks = min((n + BLOCK_SIZE - 1) / BLOCK_SIZE, 65535 * 4);
-
-        // Radix Sort principal
-        for (int shift = 0; shift < 32; shift += RADIX_BITS) {
-            // Reiniciar contadores
-            CHECK_CUDA_ERROR(cudaMemset(d_count, 0, radix_memory));
-            
-            // Kernel de conteo
-            count_kernel<<<num_blocks, BLOCK_SIZE>>>((int*)d_input, d_count, n, shift);
-            CHECK_CUDA_ERROR(cudaGetLastError());
+    for (int bit = 0; bit < passes; bit += RADIX_BITS) {
+        // Calcular predicate
+        {
+            int num_blocks = (int)((n + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            predicate_kernel<<<num_blocks, BLOCK_SIZE>>>(d_input, d_predicate, bit, n);
             CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-
-            // Calcular prefijos
-            int count[RADIX_SIZE] = {0};
-            CHECK_CUDA_ERROR(cudaMemcpy(count, d_count, radix_memory, cudaMemcpyDeviceToHost));
-
-            int total = 0;
-            for (int i = 0; i < RADIX_SIZE; i++) {
-                int temp = count[i];
-                count[i] = total;
-                total += temp;
-            }
-
-            // Copiar contadores de vuelta al dispositivo
-            CHECK_CUDA_ERROR(cudaMemcpy(d_offsets, count, radix_memory, cudaMemcpyHostToDevice));
-
-            // Kernel de dispersión
-            scatter_kernel<<<num_blocks, BLOCK_SIZE>>>((int*)d_input, d_output, d_offsets, n, shift);
-            CHECK_CUDA_ERROR(cudaGetLastError());
-            CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-
-            // Intercambiar punteros
-            swap(d_input, d_output);
         }
 
-        // Copiar resultado de vuelta al host
-        CHECK_CUDA_ERROR(cudaMemcpy(data, d_input, input_memory, cudaMemcpyDeviceToHost));
-    }
-    catch (const std::exception& e) {
-        cerr << "Error during GPU sorting: " << e.what() << endl;
+        // Copiar predicate a vector thrust
+        thrust::device_ptr<int> pred_ptr(d_predicate);
+        thrust::copy(pred_ptr, pred_ptr + n, d_predicate_scan.begin());
+
+        // Calcular prefix sum del predicate (esto da las posiciones de los que tienen bit=1)
+        thrust::exclusive_scan(d_predicate_scan.begin(), d_predicate_scan.end(), d_predicate_scan.begin());
+
+        // Contar cuantos 1 hay: el último valor en la prefix sum + el valor del último elemento
+        // Para saber el num_ones: sum = (última posición en d_predicate_scan) + ultimo valor d_predicate
+        int last_pred_val = d_predicate_scan[n-1] + ( (int)thrust::device_pointer_cast(d_predicate)[n-1] );
+        int num_ones;
+        CHECK_CUDA_ERROR(cudaMemcpy(&num_ones, thrust::raw_pointer_cast(&d_predicate_scan[n-1]), sizeof(int), cudaMemcpyDeviceToHost));
+        // sumarle el valor real del último predicate para contar correctamente
+        int last_bit;
+        CHECK_CUDA_ERROR(cudaMemcpy(&last_bit, d_predicate + (n-1), sizeof(int), cudaMemcpyDeviceToHost));
+        num_ones += last_bit;
+
+        // ters_predict = !predicate
+        thrust::transform(pred_ptr, pred_ptr+n, d_ters_predicate.begin(), thrust::logical_not<int>());
+
+        // Scan de ters_predict
+        thrust::exclusive_scan(d_ters_predicate.begin(), d_ters_predicate.end(), d_ters_predicate_scan.begin());
+
+        // Ahora hacer reorder usando reorder_kernel
+        {
+            int num_blocks = (int)((n + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            reorder_kernel<<<num_blocks, BLOCK_SIZE>>>(d_input,
+                                                       d_output,
+                                                       d_predicate,
+                                                       thrust::raw_pointer_cast(d_predicate_scan.data()),
+                                                       thrust::raw_pointer_cast(d_ters_predicate_scan.data()),
+                                                       num_ones, n);
+            CHECK_CUDA_ERROR(cudaDeviceSynchronize());
+        }
+
+        // Intercambiar punteros
+        int* temp = d_input;
+        d_input = d_output;
+        d_output = temp;
     }
 
-    // Liberar memoria
-    if (d_input) CHECK_CUDA_ERROR(cudaFree(d_input));
-    if (d_output) CHECK_CUDA_ERROR(cudaFree(d_output));
-    if (d_count) CHECK_CUDA_ERROR(cudaFree(d_count));
-    if (d_offsets) CHECK_CUDA_ERROR(cudaFree(d_offsets));
+    // Copiar resultado final
+    CHECK_CUDA_ERROR(cudaMemcpy(data, d_input, n*sizeof(int), cudaMemcpyDeviceToHost));
+
+    CHECK_CUDA_ERROR(cudaFree(d_input));
+    CHECK_CUDA_ERROR(cudaFree(d_output));
+    CHECK_CUDA_ERROR(cudaFree(d_predicate));
 }
