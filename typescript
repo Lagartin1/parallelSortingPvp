@@ -1,0 +1,43 @@
+Script started on 2024-12-07 19:50:26-03:00 [TERM="xterm-256color" TTY="/dev/pts/8" COLUMNS="179" LINES="15"]
+[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp]1;..lelSortingPvp]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp\[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [K[?1h=[?2004h[0m[27m[24m[J[01;32m➜  [36mparallelSortingPvp[00m [01;34mgit:([31mmain[34m) [33m✗[00m [Ksscr ripts[?1l>[?2004l
+]2;scripts]1;scripts[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;32m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004he ttext  st_gpu.pyptest_gpu.py[11Dpytest_gpu.py[11D[1Ctest_gpu.py[11Dhtest_gpu.py[11Dotest_gpu.py[11Dntest_gpu.py[11D3test_gpu.py[11D test_gpu.py[11D[1C[1C[1C[1C[1C[1C[1C[1C[1C[1C[1C[?1l>[?2004l
+]2;python3 test_gpu.py]1;python3n=1024, threads=1, time=3.942580e-01s
+n=1024, threads=2, time=3.495010e-01s
+n=1024, threads=3, time=3.619900e-01s
+n=1024, threads=4, time=3.406340e-01s
+n=1024, threads=5, time=3.153900e-01s
+n=1024, threads=6, time=3.102620e-01s
+n=1024, threads=7, time=3.194620e-01s
+n=1024, threads=8, time=3.480440e-01s
+n=2048, threads=1, time=3.208740e-01s
+n=2048, threads=2, time=3.132430e-01s
+n=2048, threads=3, time=3.382130e-01s
+n=2048, threads=4, time=3.330730e-01s
+n=2048, threads=5, time=3.226890e-01s
+n=2048, threads=6, time=3.212900e-01s
+n=2048, threads=7, time=3.096500e-01s
+n=2048, threads=8, time=3.496080e-01s
+n=4096, threads=1, time=2.922940e-01s
+^Xn=4096, threads=2, time=3.165810e-01s
+n=4096, threads=3, time=3.625990e-01s
+^CTraceback (most recent call last):
+  File "test_gpu.py", line 31, in <module>
+    result = subprocess.run(
+  File "/usr/lib/python3.8/subprocess.py", line 495, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/usr/lib/python3.8/subprocess.py", line 1028, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+  File "/usr/lib/python3.8/subprocess.py", line 1868, in _communicate
+    ready = selector.select(timeout)
+  File "/usr/lib/python3.8/selectors.py", line 415, in select
+    fd_event_list = self._selector.poll(timeout)
+KeyboardInterrupt
+
+[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;31m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hcclear[?1l>[?2004l
+]2;clear]1;clear[H[2J[3J[1m[7m%[27m[1m[0m                                                                                                                                                                                   ]2;francisco@LAPTOP-EB6IR2K2:~/GitProyects/parallelSortingPvp/scripts]1;..ngPvp/scripts]7;file://LAPTOP-EB6IR2K2/home/francisco/GitProyects/parallelSortingPvp/scripts\[0m[27m[24m[J[01;32m➜  [36mscripts[00m [01;34mgit:([31mmain[34m) [33m✗[00m [K[?1h=[?2004hclearpython3 test_gpu.py[?1l>[?2004l
+]2;python3 test_gpu.py]1;python3n=1024, time=3.395940e-01s
+n=2048, time=3.241020e-01s
+n=4096, time=3.311840e-01s
+n=8192, time=3.139090e-01s
+n=16384, time=3.223400e-01s
+n=32768, time
