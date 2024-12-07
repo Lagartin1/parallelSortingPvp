@@ -62,13 +62,13 @@ Donde:
 - `nt` es el número de threads a utilizar en el caso de CPU.
 ## Ejemplo de ejecucion
 ```bash
-./prog $((2**24)) 0 8
+./prog $((2**10)) 0 8
 ```
 ## Resultados
 ```bash
-➜ $ ./prog $((2**24)) 0 8   
-El ordenamiento es correcto!
-16777216 elementos ordenados en 0.838904 segundos.
+➜  bin git:(main) ./prog $((2**10)) 0  8                                                                  
+1024 elementos ordenados en 0.000102577 segundos.
+1024 elementos ordenados por sort::std en 2.9172e-05 segundos.
 ```
 # Ejecucion script
 ## scripts de pruebas:
