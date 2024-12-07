@@ -8,18 +8,20 @@
 
 
 // Constantes para el Sort en GPU
-#define BLOCK_SIZE 256
-#define BUCKET_COUNT 8 // Número de buckets
-
+#define BLOCK_SIZE 512
+#define RADIX_BITS 4
+#define RADIX_SIZE (1 << RADIX_BITS)
+#define RADIX_MASK ((1 << RADIX_BITS) - 1)
 
 using namespace std;
 void generate_random_data(int* data, size_t n);
 void merge(int* arr, int* left, int left_size, int* right, int right_size);
 void parallel_merge_sort(int* arr, int n);
 void cpu_parallel_sort(int* arr, size_t n);
-__global__ void distribute_kernel(int* data, int* buckets, int* bucket_sizes, int n, int* pivots);
-__global__ void local_sort_kernel(int* buckets, int* bucket_sizes, int bucket_idx, int bucket_capacity);
-void gpu_sample_sort(int* data, size_t n);
+__global__ void count_kernel(int* input, int* count, int n, int shift);
+__global__ void scatter_kernel(int* input, int* output, int* global_offset, int n, int shift);
+
+void gpu_radix_sort(int* data, int n);
 
 
 // Función principal
@@ -59,7 +61,7 @@ int main(int argc, char** argv) {
     } 
     else if (mode == 1) { // Modo GPU
         start_time = omp_get_wtime();
-        gpu_sample_sort(data.data(), n);
+        gpu_radix_sort(data.data(), n);
         end_time = omp_get_wtime();
     }
 
@@ -133,90 +135,81 @@ void cpu_parallel_sort(int* arr, size_t n) {
         parallel_merge_sort(arr, n);
     }
 }
-__global__ void distribute_kernel(int* data, int* buckets, int* bucket_sizes, int n, int* pivots) {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (tid < n) {
-        int val = data[tid];
-        int bucket = 0;
 
-        // Determinar en qué bucket cae el valor
-        while (bucket < BUCKET_COUNT - 1 && val > pivots[bucket]) {
-            bucket++;
-        }
+// Kernel para contar las ocurrencias de cada dígito en Radix Sort
+__global__ void count_kernel(int* input, int* count, int n, int shift) {
+    __shared__ int local_count[RADIX_SIZE];
 
-        // Incrementar el tamaño del bucket y agregar el valor
-        int pos = atomicAdd(&bucket_sizes[bucket], 1);
-        buckets[bucket * n + pos] = val;
+    int tid = threadIdx.x;
+    int gid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < RADIX_SIZE) {
+        local_count[tid] = 0;
+    }
+    __syncthreads();
+
+    if (gid < n) {
+        int digit = (input[gid] >> shift) & RADIX_MASK;
+        atomicAdd(&local_count[digit], 1);
+    }
+    __syncthreads();
+
+    if (tid < RADIX_SIZE) {
+        atomicAdd(&count[tid], local_count[tid]);
     }
 }
 
-__global__ void local_sort_kernel(int* buckets, int* bucket_sizes, int bucket_idx, int n) {
-    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+// Kernel para distribuir elementos según sus dígitos
+__global__ void scatter_kernel(int* input, int* output, int* global_offset, int n, int shift) {
+    int gid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (tid < bucket_sizes[bucket_idx]) {
-        // Ordenamiento burbuja local (puede ser reemplazado por otro algoritmo)
-        for (int i = 0; i < bucket_sizes[bucket_idx]; i++) {
-            for (int j = i + 1; j < bucket_sizes[bucket_idx]; j++) {
-                int idx1 = bucket_idx * n + i;
-                int idx2 = bucket_idx * n + j;
-
-                if (buckets[idx1] > buckets[idx2]) {
-                    int temp = buckets[idx1];
-                    buckets[idx1] = buckets[idx2];
-                    buckets[idx2] = temp;
-                }
-            }
-        }
+    if (gid < n) {
+        int digit = (input[gid] >> shift) & RADIX_MASK;
+        int pos = atomicAdd(&global_offset[digit], 1);
+        output[pos] = input[gid];
     }
 }
 
+// Implementación de Radix Sort en GPU
+void gpu_radix_sort(int* data, int n) {
+    int* d_input, *d_output, *d_count, *d_offsets;
+    cudaMalloc(&d_input, n * sizeof(int));
+    cudaMalloc(&d_output, n * sizeof(int));
+    cudaMalloc(&d_count, RADIX_SIZE * sizeof(int));
+    cudaMalloc(&d_offsets, RADIX_SIZE * sizeof(int));
 
-// Sample Sort en GPU
-void gpu_sample_sort(int* data, size_t n) {
-    int* d_data, *d_buckets, *d_bucket_sizes, *d_pivots;
-    int* pivots = new int[BUCKET_COUNT - 1];
-    int bucket_capacity = n;
+    cudaMemcpy(d_input, data, n * sizeof(int), cudaMemcpyHostToDevice);
 
-    // Generar pivotes (muestreo uniforme)
-    for (int i = 0; i < BUCKET_COUNT - 1; i++) {
-        pivots[i] = (i + 1) * (INT_MAX / BUCKET_COUNT);
-    }
-
-    // Reservar memoria en GPU
-    cudaMalloc(&d_data, n * sizeof(int));
-    cudaMalloc(&d_buckets, BUCKET_COUNT * bucket_capacity * sizeof(int));
-    cudaMalloc(&d_bucket_sizes, BUCKET_COUNT * sizeof(int));
-    cudaMalloc(&d_pivots, (BUCKET_COUNT - 1) * sizeof(int));
-
-    // Copiar datos y pivotes al dispositivo
-    cudaMemcpy(d_data, data, n * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_pivots, pivots, (BUCKET_COUNT - 1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemset(d_bucket_sizes, 0, BUCKET_COUNT * sizeof(int));
-
-    // Paso 1: Distribuir elementos en buckets
     int num_blocks = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    distribute_kernel<<<num_blocks, BLOCK_SIZE>>>(d_data, d_buckets, d_bucket_sizes, n, d_pivots);
 
-    // Paso 2: Ordenar localmente cada bucket
-    for (int i = 0; i < BUCKET_COUNT; i++) {
-        local_sort_kernel<<<1, BLOCK_SIZE>>>(d_buckets, d_bucket_sizes, i, n);
+    for (int shift = 0; shift < 32; shift += RADIX_BITS) {
+        cudaMemset(d_count, 0, RADIX_SIZE * sizeof(int));
+        count_kernel<<<num_blocks, BLOCK_SIZE>>>(d_input, d_count, n, shift);
+        cudaDeviceSynchronize();
+
+        int count[RADIX_SIZE];
+        cudaMemcpy(count, d_count, RADIX_SIZE * sizeof(int), cudaMemcpyDeviceToHost);
+
+        int total = 0;
+        for (int i = 0; i < RADIX_SIZE; i++) {
+            int temp = count[i];
+            count[i] = total;
+            total += temp;
+        }
+
+        cudaMemcpy(d_offsets, count, RADIX_SIZE * sizeof(int), cudaMemcpyHostToDevice);
+
+        scatter_kernel<<<num_blocks, BLOCK_SIZE>>>(d_input, d_output, d_offsets, n, shift);
+        cudaDeviceSynchronize();
+
+        swap(d_input, d_output);
     }
 
-    // Paso 3: Combinar buckets
-    int offset = 0;
-    for (int i = 0; i < BUCKET_COUNT; i++) {
-        int size;
-        cudaMemcpy(&size, &d_bucket_sizes[i], sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(data, d_input, n * sizeof(int), cudaMemcpyDeviceToHost);
 
-        cudaMemcpy(data + offset, d_buckets + i * bucket_capacity, size * sizeof(int), cudaMemcpyDeviceToHost);
-        offset += size;
-    }
-
-    // Liberar memoria
-    delete[] pivots;
-    cudaFree(d_data);
-    cudaFree(d_buckets);
-    cudaFree(d_bucket_sizes);
-    cudaFree(d_pivots);
+    cudaFree(d_input);
+    cudaFree(d_output);
+    cudaFree(d_count);
+    cudaFree(d_offsets);
 }
