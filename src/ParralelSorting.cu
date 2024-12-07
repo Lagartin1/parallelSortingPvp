@@ -11,17 +11,24 @@
 #define RADIX_BITS 4
 #define RADIX_SIZE (1 << RADIX_BITS)
 #define RADIX_MASK ((1 << RADIX_BITS) - 1)
-
+#define CHECK_CUDA_ERROR(call) { \
+    cudaError_t err = call; \
+    if (err != cudaSuccess) { \
+        std::cerr << "CUDA Error in " << __FILE__ << " at line " << __LINE__ \
+                  << ": " << cudaGetErrorString(err) << std::endl; \
+        exit(EXIT_FAILURE); \
+    } \
+}
 
 using namespace std;
 
+// Declaraciones de funciones
 void generate_random_data(int* data, size_t n);
 void merge(int* arr, int* left, int left_size, int* right, int right_size);
 void parallel_merge_sort(int* arr, int n);
 void cpu_parallel_sort(int* arr, size_t n);
-__global__ void count_kernel(int* input, int* count, int n, int shift);
-__global__ void scatter_kernel(int* input, int* output, int* global_offset, int n, int shift);
-
+void checkGPUMemory();
+void printGPUProperties();
 void gpu_radix_sort(int* data, int n);
 
 // Función principal
@@ -84,7 +91,7 @@ int main(int argc, char** argv) {
 void generate_random_data(int* data, size_t n) {
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<int> dist(0, INT_MAX);
+    uniform_int_distribution<int> dist(0, (1<<16)-1);
 
     #pragma omp parallel for
     for (size_t i = 0; i < n; i++) {
@@ -136,30 +143,6 @@ void cpu_parallel_sort(int* arr, size_t n) {
         parallel_merge_sort(arr, n);
     }
 }
-#include <iostream>
-#include <vector>
-#include <random>
-#include <algorithm>
-#include <omp.h>
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-
-#define BLOCK_SIZE 256
-#define RADIX_BITS 4
-#define RADIX_SIZE (1 << RADIX_BITS)
-#define RADIX_MASK ((1 << RADIX_BITS) - 1)
-
-using namespace std;
-
-// Función para verificar errores de CUDA
-#define CHECK_CUDA_ERROR(call) { \
-    cudaError_t err = call; \
-    if (err != cudaSuccess) { \
-        cerr << "CUDA Error in " << __FILE__ << " at line " << __LINE__ \
-             << ": " << cudaGetErrorString(err) << endl; \
-        exit(EXIT_FAILURE); \
-    } \
-}
 
 // Función para verificar recursos de la GPU
 void checkGPUMemory() {
@@ -198,7 +181,7 @@ void printGPUProperties() {
     }
 }
 
-// Kernel con manejo de errores
+// Kernel de conteo para Radix Sort
 __global__ void count_kernel(int* input, int* count, size_t n, int shift) {
     __shared__ int local_count[RADIX_SIZE];
 
@@ -224,66 +207,7 @@ __global__ void count_kernel(int* input, int* count, size_t n, int shift) {
     }
 }
 
-// Kernel de scatter con manejo adicional
-__global__ void scatter_kernel(int* input, int* output, int* global_offset, size_t n, int shift) {
-    size_t gid = blockIdx.x * (size_t)blockDim.x + threadIdx.x;
-
-    // Procesar en bloques más grandes
-    for (size_t i = gid; i < n; i += gridDim.x * blockDim.x) {
-        int digit = (input[i] >> shift) & RADIX_MASK;
-        size_t pos = atomicAdd((unsigned int*)&global_offset[digit], 1);
-        output[pos] = input[i];
-    }
-}
-
-
-
-// Función para verificar errores de CUDA
-#define CHECK_CUDA_ERROR(call) { \
-    cudaError_t err = call; \
-    if (err != cudaSuccess) { \
-        cerr << "CUDA Error in " << __FILE__ << " at line " << __LINE__ \
-             << ": " << cudaGetErrorString(err) << endl; \
-        exit(EXIT_FAILURE); \
-    } \
-}
-
-// Función para verificar recursos de la GPU
-void checkGPUMemory() {
-    size_t free_mem, total_mem;
-    CHECK_CUDA_ERROR(cudaMemGetInfo(&free_mem, &total_mem));
-    
-    cout << "GPU Memory Info:" << endl;
-    cout << "Total Memory: " << total_mem / (1024 * 1024) << " MB" << endl;
-    cout << "Free Memory: " << free_mem / (1024 * 1024) << " MB" << endl;
-}
-
-// Kernels CUDA para Radix Sort
-__global__ void count_kernel(int* input, int* count, size_t n, int shift) {
-    __shared__ int local_count[RADIX_SIZE];
-
-    int tid = threadIdx.x;
-    size_t gid = blockIdx.x * (size_t)blockDim.x + threadIdx.x;
-
-    // Inicializar contadores locales
-    if (tid < RADIX_SIZE) {
-        local_count[tid] = 0;
-    }
-    __syncthreads();
-
-    // Contar en bloques más grandes
-    for (size_t i = gid; i < n; i += gridDim.x * blockDim.x) {
-        int digit = (input[i] >> shift) & RADIX_MASK;
-        atomicAdd(&local_count[digit], 1);
-    }
-    __syncthreads();
-
-    // Actualizar contadores globales
-    if (tid < RADIX_SIZE) {
-        atomicAdd(&count[tid], local_count[tid]);
-    }
-}
-
+// Kernel de dispersión para Radix Sort
 __global__ void scatter_kernel(int* input, int* output, int* global_offset, size_t n, int shift) {
     size_t gid = blockIdx.x * (size_t)blockDim.x + threadIdx.x;
 
