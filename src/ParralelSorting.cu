@@ -62,10 +62,6 @@ int main(int argc, char** argv) {
     startTimeStd = omp_get_wtime();
     sort(copy_data.begin(), copy_data.end());
     endTimeStd = omp_get_wtime();
-
-
-    
-
     cout << n << " elementos ordenados en " << (end_time - start_time) << " segundos.\n";
     cout << n << " elementos ordenados por sort::std en " << (endTimeStd - startTimeStd) << " segundos.\n";
 
