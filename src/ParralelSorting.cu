@@ -28,9 +28,11 @@ void generate_random_data(int* data, size_t n);
 void merge(int* arr, int* left, int left_size, int* right, int right_size);
 void parallel_merge_sort(int* arr, int n);
 void cpu_parallel_sort(int* arr, size_t n);
-void checkGPUMemory();
-void printGPUProperties();
-void gpu_radix_sort(int* data, size_t n);
+__global__ void maskKernel(int *d_input, int *d_mask, int bit, int n);
+__global__ void computeScanKernel(int *d_mask, int *d_scan, int n);
+__global__ void KernelScatter(int *d_input, int *d_output, int *d_mask, int *d_scan, int n, int totalZeros);
+
+void gpu_radix_sort(int *arr, int n, int gridSize);
 
 // Función principal
 int main(int argc, char** argv) {
@@ -67,23 +69,10 @@ int main(int argc, char** argv) {
         end_time = omp_get_wtime();
     } 
     else if (mode == 1) { // Modo GPU
-        // Reservar memoria host para el sorting en GPU
-        int* h_data = (int*)malloc(n * sizeof(int));
-        if (!h_data) {
-            cerr << "Error: no se pudo asignar memoria host para h_data.\n";
-            return 1;
-        }
-        // Copiar data a h_data
-        std::copy(data.begin(), data.end(), h_data);
-
+        int blocks = BLOCK_SIZE;
         start_time = omp_get_wtime();
-        // Llamar a gpu_radix_sort que asume que h_data es host
-        gpu_radix_sort(h_data, n);
+        gpu_radix_sort(data.data(), n, blocks);
         end_time = omp_get_wtime();
-
-        // Copiar resultado a data
-        std::copy(h_data, h_data + n, data.begin());
-        free(h_data);
     }
 
     // Verificación
@@ -159,111 +148,86 @@ void cpu_parallel_sort(int* arr, size_t n) {
     }
 }
 
-// Kernel para generar el predicate basado en un bit dado
-__global__ void predicate_kernel(const int* __restrict__ d_input, int* __restrict__ d_predicate, int bit, size_t n) {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+// kernel para calcular la mask de bits en Radix Sort
+__global__ void maskKernel(int *d_input, int *d_mask, int bit, int n) {
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if (idx < n) {
-        int val = d_input[idx];
-        int bit_val = (val >> bit) & 1;
-        d_predicate[idx] = bit_val; // 1 si el bit es 1, 0 si es 0
+        d_mask[idx] = (d_input[idx] >> bit) & 1;
     }
 }
 
-// Kernel para aplicar el resultado del reorder usando predicate y su complemento
-__global__ void reorder_kernel(const int* __restrict__ d_input,
-                               int* __restrict__ d_output,
-                               const int* __restrict__ d_predicate,
-                               const int* __restrict__ d_predicate_scan,
-                               const int* __restrict__ d_ters_predicate_scan,
-                               int num_ones,
-                               size_t n) {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+// kernel para calcular el scan exclusivo en Radix Sort
+__global__ void computeScanKernel(int *d_mask, int *d_scan, int n) {
+    extern __shared__ int temp[];
+    int idx = threadIdx.x;
+    int i = blockIdx.x * blockDim.x + idx;
+
+    if (i < n) {
+        temp[idx] = d_mask[i];
+    } else {
+        temp[idx] = 0;
+    }
+    __syncthreads();
+
+    for (int offset = 1; offset < blockDim.x; offset *= 2) {
+        int val = idx >= offset ? temp[idx - offset] : 0;
+        __syncthreads();
+        temp[idx] += val;
+        __syncthreads();
+    }
+
+    if (i < n) {
+        d_scan[i] = temp[idx];
+    }
+}
+
+// kernel para hacer scatter en Radix Sort
+__global__ void KernelScatter(int *d_input, int *d_output, int *d_mask, int *d_scan, int n, int totalZeros) {
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if (idx < n) {
-        int p = d_predicate[idx];
-        if (p == 1) {
-            // Índice para los que tienen el bit en 1
-            int new_index = d_predicate_scan[idx];
-            d_output[new_index] = d_input[idx];
+        int pos;
+        if (d_mask[idx] == 0) {
+            pos = d_scan[idx];
         } else {
-            // Índice para los que tienen el bit en 0
-            int new_index = d_ters_predicate_scan[idx] + num_ones;
-            d_output[new_index] = d_input[idx];
+            pos = totalZeros + idx - d_scan[idx];
         }
+        d_output[pos] = d_input[idx];
     }
 }
 
-// Función principal Radix Sort (bit a bit usando predicate)
-void gpu_radix_sort(int* data, size_t n) {
-    if (n == 0) return;
+// implementación de Radix Sort en GPU
+void gpu_radix_sort(int *arr, int n, int gridSize) {
+    int *d_input, *d_output, *d_mask, *d_scan;
+    cudaMalloc(&d_input, n * sizeof(int));
+    cudaMalloc(&d_output, n * sizeof(int));
+    cudaMalloc(&d_mask, n * sizeof(int));
+    cudaMalloc(&d_scan, n * sizeof(int));
 
-    // Memoria en GPU
-    int *d_input, *d_output, *d_predicate;
-    CHECK_CUDA_ERROR(cudaMalloc((void**)&d_input, n*sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc((void**)&d_output, n*sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc((void**)&d_predicate, n*sizeof(int)));
+    cudaMemcpy(d_input, arr, n * sizeof(int), cudaMemcpyHostToDevice);
 
-    CHECK_CUDA_ERROR(cudaMemcpy(d_input, data, n*sizeof(int), cudaMemcpyHostToDevice));
+    dim3 blockSize(256);
 
-    // Vectores de thrust para scans
-    thrust::device_vector<int> d_predicate_scan(n);
-    thrust::device_vector<int> d_ters_predicate(n);
-    thrust::device_vector<int> d_ters_predicate_scan(n);
+    for (int bit = 0; bit < 32; ++bit) {
+        maskKernel<<<gridSize, blockSize>>>(d_input, d_mask, bit, n);
+        cudaDeviceSynchronize();
 
-    int passes = BITS; // para 32 bits
+        computeScanKernel<<<gridSize, blockSize, blockSize.x * sizeof(int)>>>(d_mask, d_scan, n);
+        cudaDeviceSynchronize();
 
-    for (int bit = 0; bit < passes; bit += RADIX_BITS) {
-        // Calcular predicate
-        {
-            int num_blocks = (int)((n + BLOCK_SIZE - 1) / BLOCK_SIZE);
-            predicate_kernel<<<num_blocks, BLOCK_SIZE>>>(d_input, d_predicate, bit, n);
-            CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-        }
+        int totalZeros;
+        cudaMemcpy(&totalZeros, &d_scan[n - 1], sizeof(int), cudaMemcpyDeviceToHost);
+        totalZeros += 1 - ((arr[n - 1] >> bit) & 1);
 
-        // Copiar predicate a vector thrust
-        thrust::device_ptr<int> pred_ptr(d_predicate);
-        thrust::copy(pred_ptr, pred_ptr + n, d_predicate_scan.begin());
+        KernelScatter<<<gridSize, blockSize>>>(d_input, d_output, d_mask, d_scan, n, totalZeros);
+        cudaDeviceSynchronize();
 
-        // Calcular prefix sum del predicate (esto da las posiciones de los que tienen bit=1)
-        thrust::exclusive_scan(d_predicate_scan.begin(), d_predicate_scan.end(), d_predicate_scan.begin());
-
-        // Contar cuantos 1 hay: el último valor en la prefix sum + el valor del último elemento
-        // Para saber el num_ones: sum = (última posición en d_predicate_scan) + ultimo valor d_predicate
-        int last_pred_val = d_predicate_scan[n-1] + ( (int)thrust::device_pointer_cast(d_predicate)[n-1] );
-        int num_ones;
-        CHECK_CUDA_ERROR(cudaMemcpy(&num_ones, thrust::raw_pointer_cast(&d_predicate_scan[n-1]), sizeof(int), cudaMemcpyDeviceToHost));
-        // sumarle el valor real del último predicate para contar correctamente
-        int last_bit;
-        CHECK_CUDA_ERROR(cudaMemcpy(&last_bit, d_predicate + (n-1), sizeof(int), cudaMemcpyDeviceToHost));
-        num_ones += last_bit;
-
-        // ters_predict = !predicate
-        thrust::transform(pred_ptr, pred_ptr+n, d_ters_predicate.begin(), thrust::logical_not<int>());
-
-        // Scan de ters_predict
-        thrust::exclusive_scan(d_ters_predicate.begin(), d_ters_predicate.end(), d_ters_predicate_scan.begin());
-
-        // Ahora hacer reorder usando reorder_kernel
-        {
-            int num_blocks = (int)((n + BLOCK_SIZE - 1) / BLOCK_SIZE);
-            reorder_kernel<<<num_blocks, BLOCK_SIZE>>>(d_input,
-                                                       d_output,
-                                                       d_predicate,
-                                                       thrust::raw_pointer_cast(d_predicate_scan.data()),
-                                                       thrust::raw_pointer_cast(d_ters_predicate_scan.data()),
-                                                       num_ones, n);
-            CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-        }
-
-        // Intercambiar punteros
-        int* temp = d_input;
-        d_input = d_output;
-        d_output = temp;
+        swap(d_input, d_output);
     }
 
-    // Copiar resultado final
-    CHECK_CUDA_ERROR(cudaMemcpy(data, d_input, n*sizeof(int), cudaMemcpyDeviceToHost));
+    cudaMemcpy(arr, d_input, n * sizeof(int), cudaMemcpyDeviceToHost);
 
-    CHECK_CUDA_ERROR(cudaFree(d_input));
-    CHECK_CUDA_ERROR(cudaFree(d_output));
-    CHECK_CUDA_ERROR(cudaFree(d_predicate));
+    cudaFree(d_input);
+    cudaFree(d_output);
+    cudaFree(d_mask);
+    cudaFree(d_scan);
 }
