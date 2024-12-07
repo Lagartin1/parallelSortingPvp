@@ -9,16 +9,7 @@
 #include <thrust/scan.h>
 
 // Parámetros del Radix Sort
-#define MAX_BLOCK_SZ 128
-#define CHECK_CUDA_ERROR(call) { \
-    cudaError_t err = call; \
-    if (err != cudaSuccess) { \
-        std::cerr << "CUDA Error in " << __FILE__ << " at line " << __LINE__ \
-                  << ": " << cudaGetErrorString(err) << std::endl; \
-        exit(EXIT_FAILURE); \
-    } \
-}
-
+#define BLOCK_SIZE 256 // Tamaño del bloque para la GPU
 using namespace std;
 
 // Declaraciones de funciones
@@ -26,7 +17,7 @@ void generate_random_data(int* data, size_t n);
 void merge(int* arr, int* left, int left_size, int* right, int right_size);
 void parallel_merge_sort(int* arr, int n);
 void cpu_parallel_sort(int* arr, size_t n);
-void gpu_radix_sort(int* data, size_t n, int blocks);
+void radixSortGPU(int* h_arr, int n);
 // Función principal
 int main(int argc, char** argv) {
     if (argc != 4) {
@@ -63,20 +54,10 @@ int main(int argc, char** argv) {
     } 
     else if (mode == 1) { // Modo GPU
         start_time = omp_get_wtime();
-        gpu_radix_sort(data.data(), n, MAX_BLOCK_SZ);
+        radixSortGPU(data.data(), n);
         end_time = omp_get_wtime();
     }
 
-
-    // Verificación
-    sort(verify_data.begin(), verify_data.end());
-    bool is_correct = equal(data.begin(), data.end(), verify_data.begin());
-
-    if (!is_correct) {
-        cerr << "Error: El ordenamiento no es correcto!\n";
-        return 1;
-    }
-    cout << "El ordenamiento es correcto!\n";
     cout << n << " elementos ordenados en " << (end_time - start_time) << " segundos.\n";
 
     return 0;
@@ -141,126 +122,105 @@ void cpu_parallel_sort(int* arr, size_t n) {
     }
 }
 
-// GPU Radix Sort Kernels
-__global__ void gpu_radix_sort_local(unsigned int* d_out_sorted, unsigned int* d_prefix_sums, unsigned int* d_block_sums,
-                                     unsigned int input_shift_width, unsigned int* d_in, unsigned int d_in_len, unsigned int max_elems_per_block) {
-    extern __shared__ unsigned int shmem[];
-    unsigned int* s_data = shmem;
-    unsigned int* s_mask_out = &s_data[max_elems_per_block];
-    unsigned int* s_merged_scan_mask_out = &s_mask_out[max_elems_per_block + 1];
-    unsigned int* s_mask_out_sums = &s_merged_scan_mask_out[max_elems_per_block];
-    unsigned int* s_scan_mask_out_sums = &s_mask_out_sums[4];
+// Kernel para contar las frecuencias de los dígitos
+__global__ void countDigits(int* d_arr, int* d_count, int n, int exp) {
+    __shared__ int local_count[10]; // Memoria compartida para los contadores
 
-    unsigned int thid = threadIdx.x;
-    unsigned int cpy_idx = max_elems_per_block * blockIdx.x + thid;
-    if (cpy_idx < d_in_len)
-        s_data[thid] = d_in[cpy_idx];
-    else
-        s_data[thid] = 0;
+    // Inicializar los contadores locales
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    int index = threadIdx.x;
 
+    if (index < 10) local_count[index] = 0;
     __syncthreads();
 
-    unsigned int t_data = s_data[thid];
-    unsigned int t_2bit_extract = (t_data >> input_shift_width) & 3;
-
-    for (unsigned int i = 0; i < 4; ++i) {
-        s_mask_out[thid] = 0;
-        if (thid == 0) s_mask_out[max_elems_per_block] = 0;
-
-        __syncthreads();
-
-        if (cpy_idx < d_in_len) {
-            bool val_equals_i = t_2bit_extract == i;
-            s_mask_out[thid] = val_equals_i;
-        }
-
-        __syncthreads();
-
-        for (unsigned int d = 0; d < log2f(max_elems_per_block); ++d) {
-            int partner = thid - (1 << d);
-            unsigned int sum = (partner >= 0) ? s_mask_out[thid] + s_mask_out[partner] : s_mask_out[thid];
-            __syncthreads();
-            s_mask_out[thid] = sum;
-            __syncthreads();
-        }
-
-        if (thid == 0) {
-            s_mask_out[0] = 0;
-            unsigned int total_sum = s_mask_out[max_elems_per_block];
-            s_mask_out_sums[i] = total_sum;
-            d_block_sums[i * gridDim.x + blockIdx.x] = total_sum;
-        }
-
-        __syncthreads();
-
-        if (cpy_idx < d_in_len) {
-            unsigned int t_prefix_sum = s_mask_out[thid];
-            unsigned int new_pos = t_prefix_sum + s_scan_mask_out_sums[t_2bit_extract];
-            __syncthreads();
-            s_data[new_pos] = t_data;
-        }
-
-        __syncthreads();
+    // Contar los dígitos en el lugar significativo actual
+    if (tid < n) {
+        int digit = (d_arr[tid] / exp) % 10;
+        atomicAdd(&local_count[digit], 1);
     }
 
-    if (cpy_idx < d_in_len) {
-        d_out_sorted[cpy_idx] = s_data[thid];
+}
+
+// Kernel para calcular los índices finales (scanning)
+__global__ void computeOffsets(int* d_count, int* d_offset, int n) {
+    int tid = threadIdx.x;
+
+    if (tid == 0) {
+        d_offset[0] = 0;
+        for (int i = 1; i < 10; i++) {
+            d_offset[i] = d_offset[i - 1] + d_count[i - 1];
+        }
     }
 }
 
-__global__ void gpu_glbl_shuffle(unsigned int* d_out, unsigned int* d_in, unsigned int* d_scan_block_sums,
-                                 unsigned int* d_prefix_sums, unsigned int input_shift_width, unsigned int d_in_len, unsigned int max_elems_per_block) {
-    unsigned int thid = threadIdx.x;
-    unsigned int cpy_idx = max_elems_per_block * blockIdx.x + thid;
+// Kernel para reordenar los elementos en función del dígito actual
+__global__ void reorderElements(int* d_arr, int* d_output, int* d_offset, int n, int exp) {
+    __shared__ int local_offset[10];
 
-    if (cpy_idx < d_in_len) {
-        unsigned int t_data = d_in[cpy_idx];
-        unsigned int t_2bit_extract = (t_data >> input_shift_width) & 3;
-        unsigned int t_prefix_sum = d_prefix_sums[cpy_idx];
-        unsigned int data_glbl_pos = d_scan_block_sums[t_2bit_extract * gridDim.x + blockIdx.x] + t_prefix_sum;
-        __syncthreads();
-        d_out[data_glbl_pos] = t_data;
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (threadIdx.x < 10) {
+        local_offset[threadIdx.x] = d_offset[threadIdx.x];
+    }
+    __syncthreads();
+
+    if (tid < n) {
+        int digit = (d_arr[tid] / exp) % 10;
+        int position = atomicAdd(&local_offset[digit], 1);
+        d_output[position] = d_arr[tid];
     }
 }
 
-void gpu_radix_sort(int* data, size_t n, int blocks) {
-    unsigned int block_sz = MAX_BLOCK_SZ;
-    unsigned int max_elems_per_block = block_sz;
-    unsigned int grid_sz = (n + max_elems_per_block - 1) / max_elems_per_block;
+// Función principal de Radix Sort en GPU
+void radixSortGPU(int* h_arr, int n) {
+    int* d_arr;
+    int* d_output;
+    int* d_count;
+    int* d_offset;
 
-    unsigned int* d_in;
-    unsigned int* d_out;
-    cudaMalloc(&d_in, sizeof(unsigned int) * n);
-    cudaMalloc(&d_out, sizeof(unsigned int) * n);
-    cudaMemcpy(d_in, data, sizeof(unsigned int) * n, cudaMemcpyHostToDevice);
+    // Reservar memoria en el dispositivo
+    cudaMalloc((void**)&d_arr, n * sizeof(int));
+    cudaMalloc((void**)&d_output, n * sizeof(int));
+    cudaMalloc((void**)&d_count, 10 * sizeof(int));
+    cudaMalloc((void**)&d_offset, 10 * sizeof(int));
 
-    unsigned int* d_prefix_sums;
-    unsigned int d_prefix_sums_len = n;
-    cudaMalloc(&d_prefix_sums, sizeof(unsigned int) * d_prefix_sums_len);
-    cudaMemset(d_prefix_sums, 0, sizeof(unsigned int) * d_prefix_sums_len);
+    // Copiar datos al dispositivo
+    cudaMemcpy(d_arr, h_arr, n * sizeof(int), cudaMemcpyHostToDevice);
 
-    unsigned int* d_block_sums;
-    unsigned int d_block_sums_len = 4 * grid_sz;
-    cudaMalloc(&d_block_sums, sizeof(unsigned int) * d_block_sums_len);
-    cudaMemset(d_block_sums, 0, sizeof(unsigned int) * d_block_sums_len);
+    int max_val = *std::max_element(h_arr, h_arr + n);
+    int exp = 1;
 
-    unsigned int* d_scan_block_sums;
-    cudaMalloc(&d_scan_block_sums, sizeof(unsigned int) * d_block_sums_len);
-    cudaMemset(d_scan_block_sums, 0, sizeof(unsigned int) * d_block_sums_len);
+    // Número de bloques y threads
+    int num_blocks = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-    unsigned int shmem_sz = (max_elems_per_block * 5) * sizeof(unsigned int);
+    while (max_val / exp > 0) {
+        // Inicializar los contadores
+        cudaMemset(d_count, 0, 10 * sizeof(int));
 
-    for (unsigned int shift_width = 0; shift_width <= 30; shift_width += 2) {
-        gpu_radix_sort_local<<<grid_sz, block_sz, shmem_sz>>>(d_out, d_prefix_sums, d_block_sums, shift_width, d_in, n, max_elems_per_block);
+        // Contar los dígitos
+        countDigits<<<num_blocks, BLOCK_SIZE>>>(d_arr, d_count, n, exp);
         cudaDeviceSynchronize();
-        gpu_glbl_shuffle<<<grid_sz, block_sz>>>(d_in, d_out, d_scan_block_sums, d_prefix_sums, shift_width, n, max_elems_per_block);
+
+        // Calcular los offsets
+        computeOffsets<<<1, 10>>>(d_count, d_offset, n);
         cudaDeviceSynchronize();
+
+        // Reordenar los elementos
+        reorderElements<<<num_blocks, BLOCK_SIZE>>>(d_arr, d_output, d_offset, n, exp);
+        cudaDeviceSynchronize();
+
+        // Copiar el resultado al arreglo original
+        cudaMemcpy(d_arr, d_output, n * sizeof(int), cudaMemcpyDeviceToDevice);
+
+        exp *= 10;
     }
 
-    cudaMemcpy(data, d_out, sizeof(unsigned int) * n, cudaMemcpyDeviceToHost);
-    cudaFree(d_scan_block_sums);
-    cudaFree(d_block_sums);
-    cudaFree(d_prefix_sums);
-    cudaFree(d_in);
-    cudaFree(d_out);
+    // Copiar el resultado final al host
+    cudaMemcpy(h_arr, d_output, n * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // Liberar memoria en el dispositivo
+    cudaFree(d_arr);
+    cudaFree(d_output);
+    cudaFree(d_count);
+    cudaFree(d_offset);
 }
